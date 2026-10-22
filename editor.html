@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>曲の設計図エディタ</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#222;--sub:#666;--line:#ddd;--card:#fff;--acc:#2b6cb0;--cue:#d1495b;--nar:#7b5ea7}
+@media (prefers-color-scheme:dark){:root{--bg:#18191b;--fg:#e8e6e3;--sub:#9a9a9a;--line:#333;--card:#222327;--acc:#6aa5e8;--cue:#ef6f7f;--nar:#a98bd6}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.6 system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+header h1{font-size:17px;margin:0 8px 0 0}
+main{max-width:1100px;margin:0 auto;padding:12px 16px 80px}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;margin:12px 0}
+h2{font-size:15px;margin:0 0 8px}
+.hint{color:var(--sub);font-size:12.5px;margin:2px 0 8px}
+label{display:inline-flex;gap:6px;align-items:center;margin:4px 12px 4px 0;white-space:nowrap}
+input,select,textarea,button{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 7px}
+input[type=number]{width:5.5em}
+input[type=file]{max-width:100%;min-width:0}
+label:has(input[type=file]){white-space:normal;flex-wrap:wrap;max-width:100%}
+input.w{width:10em}
+button{cursor:pointer;background:var(--card)}
+button.main{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:600}
+button:disabled{opacity:.45;cursor:default}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:760px}
+td,th{border-bottom:1px solid var(--line);padding:4px;text-align:left;vertical-align:middle;font-weight:normal}
+th{color:var(--sub);font-size:12.5px}
+#tl{width:100%;height:132px;display:block;touch-action:none;user-select:none}
+#tl .sec{stroke:var(--card);stroke-width:2}
+#tl text{font-size:11px;fill:var(--fg)}
+#tl .pin{cursor:grab}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+pre,textarea.yaml{width:100%;min-height:220px;font:12.5px/1.5 ui-monospace,Menlo,monospace;white-space:pre;overflow:auto}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(20px);opacity:0;background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:20px;transition:.25s;pointer-events:none;max-width:90vw}
+.toast.on{opacity:1;transform:translateX(-50%)}
+.flags li{color:var(--cue)}
+#result img{max-width:100%;border:1px solid var(--line);border-radius:6px;margin:6px 0}
+.busy{animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.5}}
+.energy{width:90px}
+small.num{color:var(--sub);min-width:2.4em;display:inline-block}
+</style>
+</head>
+<body>
+<header>
+  <h1>曲の設計図エディタ</h1>
+  <button id="undo" title="Ctrl+Z">戻す</button>
+  <button id="redo" title="Ctrl+Shift+Z">やり直す</button>
+  <span class="hint" id="saved">下書きはこのブラウザに自動で残ります</span>
+</header>
+<main>
+<section>
+  <h2>曲全体</h2>
+  <div class="row">
+    <label>題名 <input id="title" class="w"></label>
+    <label>様式 <select id="style">
+      <!-- @couple:style-list 様式を足したら styles.STYLES と SKILL.md と README も -->
+      <option value="bright_pop">明るいポップ</option>
+      <option value="acoustic">やわらかいアコースティック</option>
+      <option value="cinematic">映画風オーケストラ</option>
+      <option value="lofi">ローファイ</option>
+      <option value="playful">遊び心（ピチカートと木管）</option>
+    </select></label>
+    <label>テンポ <input id="tempo" type="number" min="40" max="220"></label>
+    <label>拍子 <select id="meter"><option>4/4</option><option>3/4</option><option>6/8</option></select></label>
+    <!-- @couple:modes 旋法を足したら theory.MODES も -->
+    <label>調 <select id="tonic"></select><select id="mode"><option value="major">長調</option><option value="minor">短調</option><option value="dorian">ドリア</option><option value="mixolydian">ミクソリディア</option><option value="lydian">リディア</option></select></label>
+    <label>案の番号 <input id="seed" type="number" min="1"></label>
+    <button id="reroll" title="同じ設計図で、和声と旋律の別の案を作る">別の案にする</button>
+  </div>
+</section>
+
+<section>
+  <h2>時間の流れ</h2>
+  <p class="hint" id="tlHint">帯の空いている所を押すと、下で選んだ種類のきっかけをその秒に置きます。赤い印は横に引っぱって動かせます。</p>
+  <div class="row">
+    <label>置く種類 <select id="cueType">
+      <!-- @couple:cue-types きっかけの種類を足したら spec.CUE_TYPES と compose.apply_cues と SKILL.md も -->
+      <option value="hit">hit 全員で一撃</option>
+      <option value="impact">impact 低い衝撃</option>
+      <option value="break">break 拍を落とす</option>
+      <option value="stop">stop 全部止める</option>
+      <option value="drop">drop 溜めて戻る</option>
+      <option value="riser">riser 上がっていく音</option>
+      <option value="swell">swell 和音の膨らみ</option>
+      <option value="whoosh">whoosh 風切り音</option>
+      <option value="chime">chime きらめき</option>
+      <option value="click">click 軽い打音</option>
+      <option value="accent">accent 強拍</option>
+    </select></label>
+    <span class="hint" id="total"></span>
+  </div>
+  <svg id="tl" viewBox="0 0 1000 132" preserveAspectRatio="none"></svg>
+</section>
+
+<section>
+  <h2>区切り</h2>
+  <p class="hint">勢いは 0〜1。空欄なら役割の既定（つかみ 0.35、山場 0.92 など）。楽器は様式の役の名前を空白で区切って書き、+choir で足し、-drums で抜きます。</p>
+  <div class="scroll"><table id="secs"><thead><tr><th>名前</th><th>長さ</th><th>役割</th><th>気分</th><th>勢い</th><th>調（転調）</th><th>楽器</th><th></th></tr></thead><tbody></tbody></table></div>
+  <button id="addSec">区切りを足す</button>
+</section>
+
+<section>
+  <h2>きっかけ</h2>
+  <p class="hint">秒は小数で書けます。長さは "1 bar"・"2拍"・"1.5s" のどれでも。riser と swell は「その秒に向かって」盛り上がります。</p>
+  <div class="scroll"><table id="cues"><thead><tr><th>秒</th><th>種類</th><th>長さ</th><th>強さ</th><th>メモ</th><th></th></tr></thead><tbody></tbody></table></div>
+</section>
+
+<section>
+  <h2>ナレーションの所（音楽を下げる）</h2>
+  <div class="scroll"><table id="nars"><thead><tr><th>から（秒）</th><th>まで（秒）</th><th>下げる量（dB）</th><th></th></tr></thead><tbody></tbody></table></div>
+  <button id="addNar">ナレーションの所を足す</button>
+  <div class="row" style="margin-top:8px">
+    <label>ラウドネス <input id="loud" type="number" step="0.5"> LUFS</label>
+    <label>ピークの天井 <input id="tp" type="number" step="0.1"> dBTP</label>
+  </div>
+</section>
+
+<section>
+  <h2>作る</h2>
+  <div class="row">
+    <button class="main" id="make">この設計図で曲を作る</button>
+    <button id="copy">YAML をコピー</button>
+    <button id="save">YAML を保存</button>
+    <label>読み込む <input type="file" id="load" accept=".yaml,.yml,.json"></label>
+  </div>
+  <p class="hint" id="makeHint"></p>
+  <div id="result"></div>
+  <details><summary>設計図（YAML）を見る・貼り付けて読み込む</summary>
+    <textarea class="yaml" id="yaml" spellcheck="false"></textarea>
+    <button id="applyYaml">この YAML を読み込む</button>
+  </details>
+</section>
+</main>
+<div class="toast" id="toast"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+<script>
+'use strict';
+// @couple:section-roles 役割を足したら styles.ROLE_ENERGY と spec.ROLE_ALIAS と SKILL.md も
+const ROLES = [['intro','つかみ（intro）'],['verse','紹介（verse）'],['build','盛り上げ（build）'],['chorus','山場（chorus）'],['break','間（break）'],['bridge','展開（bridge）'],['outro','終わり（outro）']];
+const ROLE_E = {intro:.35,verse:.5,build:.68,chorus:.92,break:.3,bridge:.55,outro:.62};
+const TONICS = ['C','C#','Db','D','Eb','E','F','F#','Gb','G','Ab','A','Bb','B'];
+const STYLE_DEF = {bright_pop:[120,'D','major'],acoustic:[92,'G','major'],cinematic:[100,'D','minor'],lofi:[78,'F','major'],playful:[126,'F','major']};
+const $ = id => document.getElementById(id);
+const served = location.protocol.startsWith('http') && !location.hostname.endsWith('github.io');
+
+let S = load() || example();
+let hist = [], fut = [];
+
+function example(){return {title:'アプリ宣伝ムービー 60秒',style:'bright_pop',tempo:120,meter:'4/4',key:'D major',seed:11,
+  sections:[{name:'つかみ',bars:3,role:'intro',mood:'期待が高まる'},{name:'困りごと',bars:3,role:'verse',mood:'問いかけ',energy:.4},{name:'機能紹介1',bars:5,role:'verse',mood:'軽快に'},
+   {name:'機能紹介2',bars:5,role:'build',mood:'盛り上げていく'},{name:'山場',bars:7,role:'chorus',mood:'最高潮',key:'E major'},{name:'静かな間',bars:3,role:'break',mood:'余韻',energy:.3},{name:'ロゴ',bars:4,role:'outro',mood:'堂々と締める',energy:.7}],
+  cues:[{at:0.5,type:'chime'},{at:6,type:'whoosh',length:'0.8s'},{at:12,type:'hit'},{at:32,type:'riser',length:'2 bars'},{at:32,type:'impact'},{at:44,type:'break',length:'1 bar'},{at:52.5,type:'chime'}],
+  narration:[{from:12,to:21,duck:-6}],mix:{loudness:-14,true_peak:-1}};}
+
+function load(){try{const s=localStorage.getItem('music-spec');return s?JSON.parse(s):null}catch(e){return null}}
+function persist(){try{localStorage.setItem('music-spec',JSON.stringify(S))}catch(e){}}
+function commit(fn,msg){hist.push(JSON.stringify(S));if(hist.length>200)hist.shift();fut=[];fn();persist();render();if(msg)toast(msg)}
+function undo(){if(!hist.length)return toast('これ以上戻れません');fut.push(JSON.stringify(S));S=JSON.parse(hist.pop());persist();render();toast('1つ戻しました')}
+function redo(){if(!fut.length)return;hist.push(JSON.stringify(S));S=JSON.parse(fut.pop());persist();render()}
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),1800)}
+
+// 小節と秒の換算（rit. は数えない、だいたいの目安）
+const barBeats = () => { const [n,d]=S.meter.split('/').map(Number); return n*4/d; };
+const secPerBar = () => barBeats()*60/S.tempo;
+function secLen(sec){ if(sec.seconds!=null) return +sec.seconds; if(sec.bars!=null) return sec.bars*secPerBar(); return 0; }
+function sections(){let t=0;return S.sections.map(s=>{const a=t;t+=secLen(s);return {...s,a,b:t}})}
+const total = () => sections().reduce((m,s)=>Math.max(m,s.b),0);
+
+function render(){
+  $('title').value=S.title; $('style').value=S.style; $('tempo').value=S.tempo; $('meter').value=S.meter; $('seed').value=S.seed||1;
+  const [tn,md]=(S.key||'C major').split(/\s+/); $('tonic').value=tn; $('mode').value=md||'major';
+  $('loud').value=(S.mix||{}).loudness??-14; $('tp').value=(S.mix||{}).true_peak??-1;
+  renderSecs(); renderCues(); renderNars(); renderTl();
+  $('yaml').value=toYaml(S);
+  $('total').textContent=`全体 ${total().toFixed(1)} 秒（${(total()/secPerBar()).toFixed(1)} 小節）`;
+  $('makeHint').textContent = served ? '作るのに 30 秒〜1 分半かかります。出来上がったら、ここで聴けて、確かめの報告も開けます。'
+    : 'この画面をファイルとして開いているので、ここからは作れません。YAML を保存して python3 music.py make 設計図.yaml -o out/曲 を流すか、python3 music.py serve で開き直すと、このボタンで作れます。';
+  $('make').disabled=!served;
+}
+function cell(tag,attrs,html){const e=document.createElement(tag);Object.assign(e,attrs||{});if(html!=null)e.innerHTML=html;return e}
+function inp(val,on,attrs){const e=cell('input',Object.assign({value:val??''},attrs||{}));e.addEventListener('change',()=>commit(()=>on(e.value)));return e}
+function sel(opts,val,on){const e=cell('select');for(const [v,l] of opts)e.append(cell('option',{value:v,textContent:l}));e.value=val;e.addEventListener('change',()=>commit(()=>on(e.value)));return e}
+
+function renderSecs(){
+  const tb=$('secs').tBodies[0]; tb.innerHTML='';
+  S.sections.forEach((s,i)=>{
+    const tr=cell('tr');
+    const td=x=>{const c=cell('td');c.append(...[].concat(x));tr.append(c)};
+    td(inp(s.name,v=>s.name=v,{className:'w'}));
+    const unit = s.seconds!=null?'秒':'小節';
+    const len=inp(s.seconds??s.bars,v=>{ if(unit==='秒'){s.seconds=+v;delete s.bars}else{s.bars=+v;delete s.seconds} },{type:'number',step:'0.5',min:'0.5'});
+    const u=sel([['小節','小節'],['秒','秒']],unit,v=>{const L=secLen(s);if(v==='秒'){s.seconds=+L.toFixed(2);delete s.bars}else{s.bars=+(L/secPerBar()).toFixed(2);delete s.seconds}});
+    td([len,u]);
+    td(sel(ROLES,s.role||'verse',v=>s.role=v));
+    td(inp(s.mood,v=>s.mood=v));
+    const e=cell('input',{type:'range',min:0,max:1,step:.01,value:s.energy??ROLE_E[s.role||'verse'],className:'energy'});
+    const num=cell('small',{className:'num',textContent:s.energy==null?'既定':(+s.energy).toFixed(2)});
+    e.addEventListener('input',()=>num.textContent=(+e.value).toFixed(2));
+    e.addEventListener('change',()=>commit(()=>s.energy=+e.value));
+    const auto=cell('button',{textContent:'既定',title:'役割の既定の勢いに戻す'}); auto.onclick=()=>commit(()=>delete s.energy);
+    td([e,num,auto]);
+    td(inp(s.key,v=>{if(v.trim())s.key=v.trim();else delete s.key},{placeholder:'例 E major',style:'width:7em'}));
+    td(inp(Array.isArray(s.instruments)?s.instruments.join(' '):s.instruments,v=>{const a=v.trim().split(/\s+/).filter(Boolean);if(a.length)s.instruments=a;else delete s.instruments},{placeholder:'+choir -drums',style:'width:9em'}));
+    const up=cell('button',{textContent:'↑',title:'前へ'}); up.onclick=()=>i&&commit(()=>S.sections.splice(i-1,0,S.sections.splice(i,1)[0]));
+    const dn=cell('button',{textContent:'↓',title:'後ろへ'}); dn.onclick=()=>i<S.sections.length-1&&commit(()=>S.sections.splice(i+1,0,S.sections.splice(i,1)[0]));
+    const del=cell('button',{textContent:'消す'}); del.onclick=()=>S.sections.length>1?commit(()=>S.sections.splice(i,1),`「${s.name}」を消しました。戻すで元に戻せます`):toast('区切りは1つ以上要ります');
+    td([up,dn,del]);
+    tb.append(tr);
+  });
+}
+function renderCues(){
+  const tb=$('cues').tBodies[0]; tb.innerHTML='';
+  S.cues.sort((a,b)=>a.at-b.at);
+  S.cues.forEach((c,i)=>{
+    const tr=cell('tr'); const td=x=>{const e=cell('td');e.append(...[].concat(x));tr.append(e)};
+    td(inp(c.at,v=>c.at=+v,{type:'number',step:'0.1',min:0}));
+    td(sel([...$('cueType').options].map(o=>[o.value,o.textContent]),c.type,v=>c.type=v));
+    td(inp(c.length,v=>{if(v.trim())c.length=v.trim();else delete c.length},{placeholder:'既定',style:'width:6em'}));
+    td(inp(c.strength??0.8,v=>c.strength=+v,{type:'number',step:'0.1',min:0,max:1}));
+    td(inp(c.note,v=>c.note=v,{className:'w'}));
+    const del=cell('button',{textContent:'消す'}); del.onclick=()=>commit(()=>S.cues.splice(i,1),'きっかけを消しました。戻すで元に戻せます');
+    td(del); tb.append(tr);
+  });
+}
+function renderNars(){
+  const tb=$('nars').tBodies[0]; tb.innerHTML='';
+  (S.narration||[]).forEach((n,i)=>{
+    const tr=cell('tr'); const td=x=>{const e=cell('td');e.append(...[].concat(x));tr.append(e)};
+    td(inp(n.from,v=>n.from=+v,{type:'number',step:'0.1'})); td(inp(n.to,v=>n.to=+v,{type:'number',step:'0.1'}));
+    td(inp(n.duck??-7,v=>n.duck=+v,{type:'number',step:'1'}));
+    const del=cell('button',{textContent:'消す'}); del.onclick=()=>commit(()=>S.narration.splice(i,1));
+    td(del); tb.append(tr);
+  });
+}
+const COLORS={intro:'#8ecae6',verse:'#90be6d',build:'#f9c74f',chorus:'#f3722c',break:'#bdb2ff',bridge:'#43aa8b',outro:'#577590'};
+function renderTl(){
+  const svg=$('tl'), T=Math.max(1,total()), W=1000, x=t=>t/T*W;
+  let h='';
+  for(const s of sections()) h+=`<rect class="sec" x="${x(s.a)}" y="22" width="${Math.max(1,x(s.b)-x(s.a))}" height="56" fill="${COLORS[s.role]||'#ccc'}" opacity="${.35+.6*(s.energy??ROLE_E[s.role]??.5)}"/><text x="${x(s.a)+4}" y="40">${esc(s.name)}</text><text x="${x(s.a)+4}" y="56" opacity=".7">${s.a.toFixed(0)}秒</text>`;
+  for(const n of S.narration||[]) h+=`<rect x="${x(n.from)}" y="82" width="${Math.max(1,x(n.to)-x(n.from))}" height="8" fill="var(--nar)" opacity=".6"/>`;
+  for(let t=0;t<=T;t+=Math.max(1,Math.round(T/20))) h+=`<line x1="${x(t)}" x2="${x(t)}" y1="96" y2="100" stroke="var(--sub)"/><text x="${x(t)+2}" y="112" opacity=".6">${t}</text>`;
+  S.cues.forEach((c,i)=>{h+=`<g class="pin" data-i="${i}"><line x1="${x(c.at)}" x2="${x(c.at)}" y1="12" y2="92" stroke="var(--cue)" stroke-width="2"/><circle cx="${x(c.at)}" cy="12" r="6" fill="var(--cue)"/><text x="${x(c.at)+4}" y="126" fill="var(--cue)">${c.type}</text></g>`});
+  svg.innerHTML=h;
+}
+function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+
+// 時間軸：押して置く・引っぱって動かす
+(function(){
+  const svg=$('tl'); let drag=null;
+  const tAt=e=>{const r=svg.getBoundingClientRect();return Math.max(0,Math.min(total(),(e.clientX-r.left)/r.width*total()))};
+  svg.addEventListener('pointerdown',e=>{
+    const pin=e.target.closest('.pin');
+    if(pin){drag={i:+pin.dataset.i,before:JSON.stringify(S)};svg.setPointerCapture(e.pointerId);return}
+    const t=Math.round(tAt(e)*10)/10, type=$('cueType').value;
+    commit(()=>S.cues.push({at:t,type}),`${t} 秒に ${type} を置きました`);
+  });
+  svg.addEventListener('pointermove',e=>{if(!drag)return;S.cues[drag.i].at=Math.round(tAt(e)*10)/10;renderTl()});
+  svg.addEventListener('pointerup',()=>{if(!drag)return;hist.push(drag.before);fut=[];drag=null;persist();render()});
+})();
+
+// 曲全体の欄
+const bind=(id,fn)=>$(id).addEventListener('change',()=>commit(()=>fn($(id).value)));
+bind('title',v=>S.title=v); bind('tempo',v=>S.tempo=+v); bind('meter',v=>S.meter=v); bind('seed',v=>S.seed=+v);
+bind('style',v=>{const was=S.style;S.style=v;const d=STYLE_DEF[v];if(d&&S.tempo===STYLE_DEF[was]?.[0]){S.tempo=d[0];S.key=d[1]+' '+d[2]}});
+const setKey=()=>commit(()=>S.key=$('tonic').value+' '+$('mode').value);
+$('tonic').addEventListener('change',setKey); $('mode').addEventListener('change',setKey);
+bind('loud',v=>(S.mix=S.mix||{}).loudness=+v); bind('tp',v=>(S.mix=S.mix||{}).true_peak=+v);
+$('reroll').onclick=()=>commit(()=>S.seed=(S.seed||1)+1,'別の案の番号にしました。作り直すと和声と旋律が変わります');
+$('addSec').onclick=()=>commit(()=>S.sections.push({name:'新しい区切り',bars:4,role:'verse',mood:''}));
+$('addNar').onclick=()=>commit(()=>(S.narration=S.narration||[]).push({from:0,to:Math.min(5,total()),duck:-6}));
+$('undo').onclick=undo; $('redo').onclick=redo;
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){e.preventDefault();e.shiftKey?redo():undo()}});
+for(const t of TONICS){$('tonic').append(cell('option',{value:t,textContent:t}))}
+
+// YAML
+function yv(v){if(typeof v==='number')return String(v);if(v==null)return '""';const s=String(v);return /^[\w.\- ]+$/.test(s)&&!/^\d/.test(s)&&s.trim()===s?s:JSON.stringify(s)}
+function flow(o){return '{ '+Object.entries(o).filter(([k,v])=>v!==undefined&&v!=='').map(([k,v])=>`${k}: ${Array.isArray(v)?'['+v.map(yv).join(', ')+']':yv(v)}`).join(', ')+' }'}
+function toYaml(s){
+  const L=[`title: ${yv(s.title)}`,`style: ${s.style}`,`tempo: ${s.tempo}`,`meter: ${yv(s.meter)}`,`key: ${yv(s.key)}`,`seed: ${s.seed||1}`,'','sections:'];
+  for(const x of s.sections){L.push(`  - name: ${yv(x.name)}`);for(const k of ['bars','seconds','role','mood','energy','key','instruments'])if(x[k]!==undefined&&x[k]!=='')L.push(`    ${k}: ${Array.isArray(x[k])?'['+x[k].map(yv).join(', ')+']':yv(x[k])}`)}
+  L.push('','cues:'); if(!s.cues.length)L[L.length-1]='cues: []'; for(const c of s.cues)L.push('  - '+flow(c));
+  L.push('','narration:'); if(!(s.narration||[]).length)L[L.length-1]='narration: []'; for(const n of s.narration||[])L.push('  - '+flow(n));
+  L.push('',`mix: ${flow(s.mix||{loudness:-14,true_peak:-1})}`);
+  return L.join('\n')+'\n';
+}
+function fromText(t){
+  let o; try{o=JSON.parse(t)}catch(e){ if(!window.jsyaml) throw new Error('YAML を読む部品が読み込めていません（ネットにつながっていない？）。JSON なら読めます'); o=jsyaml.load(t) }
+  if(!o||!Array.isArray(o.sections)) throw new Error('sections が見つからない');
+  o.cues=(o.cues||[]).map(c=>({...c,at:typeof c.at==='number'?c.at:toSec(c.at,o)})); o.narration=o.narration||[]; o.meter=o.meter||'4/4';
+  o.tempo=o.tempo||STYLE_DEF[o.style||'bright_pop'][0]; o.key=o.key||STYLE_DEF[o.style||'bright_pop'].slice(1).join(' '); o.style=o.style||'bright_pop';
+  o.sections=o.sections.map(s=>{const r={...s};if(r.length!=null&&r.bars==null&&r.seconds==null){const m=String(r.length).match(/([\d.]+)\s*(bars?|小節|s|秒)?/);if(m){if(/bar|小節/.test(m[2]||''))r.bars=+m[1];else r.seconds=+m[1]}delete r.length}return r});
+  return o;
+}
+function toSec(v,o){const s=String(v),bb=(o.meter||'4/4').split('/').map(Number),bar=bb[0]*4/bb[1]*60/(o.tempo||120);let m;
+  if(m=s.match(/^([\d.]+)\s*(s|秒)?$/))return +m[1]; if(m=s.match(/^(\d+):([\d.]+)$/))return m[1]*60+ +m[2];
+  if(m=s.match(/^(?:bar\s*|b)(\d+)(?:[.\s]*(?:beat\s*)?([\d.]+))?$/i))return (m[1]-1)*bar+((m[2]||1)-1)*bar/bb[0]; return 0}
+$('applyYaml').onclick=()=>{try{const o=fromText($('yaml').value);commit(()=>S=o,'読み込みました')}catch(e){toast(e.message)}};
+$('load').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const o=fromText(await f.text());commit(()=>S=o,`${f.name} を読み込みました`)}catch(err){toast(err.message)}};
+$('copy').onclick=async()=>{try{await navigator.clipboard.writeText(toYaml(S));toast('コピーしました')}catch(e){$('yaml').closest('details').open=true;$('yaml').select();toast('下の欄を選んだので、コピーしてください')}};
+$('save').onclick=()=>{const a=cell('a',{href:URL.createObjectURL(new Blob([toYaml(S)],{type:'text/yaml'})),download:(S.title||'spec').replace(/[\\/:*?"<>| ]+/g,'_')+'.yaml'});a.click()};
+
+// 作る（music.py serve で開いたときだけ）
+$('make').onclick=async()=>{
+  const b=$('make'); b.disabled=true; b.classList.add('busy'); b.textContent='作っています…'; $('result').innerHTML='';
+  try{
+    const r=await fetch('api/make',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(S)});
+    const j=await r.json(); if(!r.ok) throw new Error(j.error||'作れませんでした');
+    $('result').innerHTML=`<audio controls src="${j.audio}" style="width:100%;margin-top:8px"></audio>
+      <p><a href="${j.report}" target="_blank">確かめの報告を開く</a>　<a href="${j.midi}">MIDI</a>　<a href="${j.wav}">WAV（48kHz）</a></p>
+      ${j.flags.length?'<p>直したほうがよさそうな所</p><ul class="flags">'+j.flags.map(f=>'<li>'+esc(f)+'</li>').join('')+'</ul>':'<p>確かめで気になる所は見つかりませんでした。</p>'}
+      <img src="${j.images}/loudness.png" alt="音量の推移"><img src="${j.images}/pianoroll.png" alt="ピアノロール">`;
+    toast('できました');
+  }catch(e){$('result').innerHTML=`<p class="flags">${esc(e.message)}</p>`}
+  b.disabled=false; b.classList.remove('busy'); b.textContent='この設計図で曲を作る';
+};
+render();
+</script>
+</body>
+</html>

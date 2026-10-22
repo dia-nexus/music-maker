@@ -1,0 +1,63 @@
+# 宣伝ムービー（60秒）の曲の設計図。
+#   python3 music.py make examples/promo-60s.yaml -o out/promo
+# 120BPM・4/4 なので 1小節 = 2秒。区切りの長さは秒でも小節でも書ける。
+title: アプリ宣伝ムービー 60秒
+style: bright_pop
+tempo: 120
+meter: 4/4
+key: D major
+seed: 11
+
+sections:
+  - name: つかみ
+    seconds: 6            # 0〜6秒
+    role: intro
+    mood: 期待が高まる、明るい予感
+  - name: 困りごと
+    bars: 3               # 6〜12秒
+    role: verse
+    mood: ちょっと困っている、問いかけ
+    energy: 0.4
+  - name: 機能紹介1
+    length: 10s           # 12〜22秒
+    role: verse
+    mood: 軽快に、わくわく
+  - name: 機能紹介2
+    bars: 5               # 22〜32秒
+    role: build
+    mood: 盛り上げていく
+  - name: 山場
+    length: 7 bars        # 32〜46秒
+    role: chorus
+    mood: 最高潮、高揚
+    key: E major          # 1音上げて山場を明るく
+    modulate: pivot
+  - name: 静かな間
+    seconds: 6            # 46〜52秒
+    role: break
+    mood: 余韻、穏やか
+    energy: 0.3
+  - name: ロゴ
+    seconds: 8            # 52〜60秒
+    role: outro
+    mood: 堂々と締める
+    energy: 0.7
+
+cues:
+  - { at: 0.5, type: chime, note: アプリのアイコンが出る }
+  - { at: 6, type: whoosh, length: 0.8s, note: 画面が横に流れる }
+  - { at: 12, type: hit, note: 機能紹介のタイトル }
+  - { at: "14s", type: click, note: ボタンを押す }
+  - { at: "0:16.5", type: click, note: 2回目のタップ }
+  - { at: "bar 17", type: riser, length: 2 bars, note: 山場への溜め（28〜32秒、at は溜めの終わり） }
+  - { at: 32, type: impact, note: 山場の頭 }
+  - { at: "b23", type: break, length: 1 bar, note: 拍を落とす（44〜46秒） }
+  - { at: 52, type: swell, length: 2 beats, note: ロゴへ }
+  - { at: "52.5s", type: chime, note: ロゴが光る }
+
+narration:
+  - { from: 12, to: 21, duck: -6 }   # ナレーションの間は音楽を 6dB 下げる
+
+mix:
+  loudness: -14
+  true_peak: -1

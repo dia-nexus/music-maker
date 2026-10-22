@@ -1,0 +1,965 @@
+{
+ "title": "アプリ宣伝ムービー 60秒",
+ "style": "bright_pop",
+ "engine": {
+  "engine": "fluidsynth",
+  "soundfont": "/home/user/claude-cloud/tools/music/.cache/GeneralUser-GS.sf2",
+  "name": "GeneralUser-GS.sf2"
+ },
+ "mix": {
+  "loudness": -13.92,
+  "true_peak": -1.05,
+  "target": -14,
+  "ceiling": -1,
+  "levels": {
+   "lead": {
+    "lufs_raw": -35.9,
+    "gain_db": 14.9
+   },
+   "keys": {
+    "lufs_raw": -31.0,
+    "gain_db": 3.0
+   },
+   "bass": {
+    "lufs_raw": -32.6,
+    "gain_db": 11.6
+   },
+   "shaker": {
+    "lufs_raw": -47.8,
+    "gain_db": 13.8
+   },
+   "drums": {
+    "lufs_raw": -32.5,
+    "gain_db": 9.5
+   },
+   "guitar": {
+    "lufs_raw": -32.2,
+    "gain_db": 5.2
+   },
+   "glock": {
+    "lufs_raw": -37.3,
+    "gain_db": 7.3
+   },
+   "strings": {
+    "lufs_raw": -29.0,
+    "gain_db": 1.0
+   },
+   "lead_hi": {
+    "lufs_raw": -28.8,
+    "gain_db": 5.8
+   },
+   "vln": {
+    "lufs_raw": -27.5,
+    "gain_db": -1.5
+   },
+   "choir": {
+    "lufs_raw": -32.1,
+    "gain_db": 0.1
+   },
+   "cue_chime": {
+    "lufs_raw": -34.1,
+    "gain_db": 3.1
+   },
+   "cue_perc": {
+    "lufs_raw": -31.3,
+    "gain_db": 2.3
+   },
+   "cue_hit": {
+    "lufs_raw": -24.6,
+    "gain_db": -2.4
+   },
+   "cue_timp": {
+    "lufs_raw": -33.1,
+    "gain_db": 5.1
+   }
+  }
+ },
+ "warnings": [],
+ "sections": [
+  {
+   "name": "つかみ",
+   "role": "intro",
+   "start": 0.0,
+   "end": 6.0,
+   "energy": 0.35,
+   "lufs": -18.1,
+   "rms_db": -20.1,
+   "peak_db": -4.4,
+   "notes_per_sec": 15.2,
+   "centroid_hz": 4179,
+   "width": 0.097,
+   "tracks": [
+    "bass",
+    "keys",
+    "lead",
+    "shaker"
+   ],
+   "key": "D major",
+   "families": [
+    "bass",
+    "drums",
+    "keys"
+   ]
+  },
+  {
+   "name": "困りごと",
+   "role": "verse",
+   "start": 6.0,
+   "end": 12.0,
+   "energy": 0.4,
+   "lufs": -15.6,
+   "rms_db": -17.6,
+   "peak_db": -3.6,
+   "notes_per_sec": 20.3,
+   "centroid_hz": 3578,
+   "width": 0.08,
+   "tracks": [
+    "bass",
+    "drums",
+    "keys",
+    "lead",
+    "shaker"
+   ],
+   "key": "D major",
+   "families": [
+    "bass",
+    "drums",
+    "keys"
+   ],
+   "change": {
+    "d_lufs": 2.5,
+    "d_density": 34,
+    "same_instruments": false,
+    "added": [
+     "drums"
+    ],
+    "removed": []
+   }
+  },
+  {
+   "name": "機能紹介1",
+   "role": "verse",
+   "start": 12.0,
+   "end": 22.0,
+   "energy": 0.5,
+   "lufs": -19.4,
+   "rms_db": -21.4,
+   "peak_db": -4.2,
+   "notes_per_sec": 34.5,
+   "centroid_hz": 3562,
+   "width": 0.129,
+   "tracks": [
+    "bass",
+    "drums",
+    "guitar",
+    "keys",
+    "lead",
+    "shaker"
+   ],
+   "key": "D major",
+   "families": [
+    "bass",
+    "drums",
+    "keys",
+    "pluck"
+   ],
+   "change": {
+    "d_lufs": -3.8,
+    "d_density": 70,
+    "same_instruments": false,
+    "added": [
+     "guitar"
+    ],
+    "removed": []
+   }
+  },
+  {
+   "name": "機能紹介2",
+   "role": "build",
+   "start": 22.0,
+   "end": 32.0,
+   "energy": 0.68,
+   "lufs": -12.3,
+   "rms_db": -14.4,
+   "peak_db": -1.5,
+   "notes_per_sec": 46.2,
+   "centroid_hz": 3704,
+   "width": 0.113,
+   "tracks": [
+    "bass",
+    "drums",
+    "glock",
+    "guitar",
+    "keys",
+    "lead",
+    "shaker",
+    "strings"
+   ],
+   "key": "D major",
+   "families": [
+    "bass",
+    "bowed",
+    "drums",
+    "keys",
+    "mallet",
+    "pluck"
+   ],
+   "change": {
+    "d_lufs": 7.1,
+    "d_density": 34,
+    "same_instruments": false,
+    "added": [
+     "glock",
+     "strings"
+    ],
+    "removed": []
+   }
+  },
+  {
+   "name": "山場",
+   "role": "chorus",
+   "start": 32.0,
+   "end": 46.0,
+   "energy": 0.92,
+   "lufs": -11.6,
+   "rms_db": -14.0,
+   "peak_db": -1.2,
+   "notes_per_sec": 42.4,
+   "centroid_hz": 3605,
+   "width": 0.171,
+   "tracks": [
+    "bass",
+    "choir",
+    "drums",
+    "glock",
+    "guitar",
+    "keys",
+    "lead_hi",
+    "strings",
+    "vln"
+   ],
+   "key": "E major",
+   "families": [
+    "bass",
+    "bowed",
+    "choir",
+    "drums",
+    "keys",
+    "mallet",
+    "pluck"
+   ],
+   "change": {
+    "d_lufs": 0.7,
+    "d_density": 8,
+    "same_instruments": false,
+    "added": [
+     "choir",
+     "lead_hi",
+     "vln"
+    ],
+    "removed": [
+     "lead",
+     "shaker"
+    ]
+   }
+  },
+  {
+   "name": "静かな間",
+   "role": "break",
+   "start": 46.0,
+   "end": 52.0,
+   "energy": 0.3,
+   "lufs": -20.3,
+   "rms_db": -21.8,
+   "peak_db": -1.7,
+   "notes_per_sec": 6.0,
+   "centroid_hz": 3979,
+   "width": 0.118,
+   "tracks": [
+    "bass",
+    "keys"
+   ],
+   "key": "E major",
+   "families": [
+    "bass",
+    "keys"
+   ],
+   "change": {
+    "d_lufs": -8.7,
+    "d_density": 86,
+    "same_instruments": false,
+    "added": [],
+    "removed": [
+     "choir",
+     "drums",
+     "glock",
+     "guitar",
+     "lead_hi",
+     "strings",
+     "vln"
+    ]
+   }
+  },
+  {
+   "name": "ロゴ",
+   "role": "outro",
+   "start": 52.0,
+   "end": 60.33,
+   "energy": 0.7,
+   "lufs": -12.6,
+   "rms_db": -14.9,
+   "peak_db": -1.4,
+   "notes_per_sec": 38.3,
+   "centroid_hz": 3692,
+   "width": 0.135,
+   "tracks": [
+    "bass",
+    "choir",
+    "drums",
+    "glock",
+    "guitar",
+    "keys",
+    "lead",
+    "shaker",
+    "strings",
+    "vln"
+   ],
+   "key": "E major",
+   "families": [
+    "bass",
+    "bowed",
+    "choir",
+    "drums",
+    "keys",
+    "mallet",
+    "pluck"
+   ],
+   "change": {
+    "d_lufs": 7.7,
+    "d_density": 538,
+    "same_instruments": false,
+    "added": [
+     "choir",
+     "drums",
+     "glock",
+     "guitar",
+     "lead",
+     "shaker",
+     "strings",
+     "vln"
+    ],
+    "removed": []
+   }
+  }
+ ],
+ "balance": {
+  "低音 〜120Hz": 31.3,
+  "中低 120〜500": 43.9,
+  "中 500〜2k": 19.6,
+  "中高 2k〜6k": 3.3,
+  "高 6k〜": 1.8
+ },
+ "ranges": [
+  {
+   "track": "lead",
+   "inst": "ピアノ",
+   "fn": "melody",
+   "lo": "F#4",
+   "hi": "B5",
+   "median": "D5",
+   "n": 76,
+   "out_of_range": 0,
+   "lo_midi": 66,
+   "hi_midi": 83
+  },
+  {
+   "track": "keys",
+   "inst": "ピアノ",
+   "fn": "comp",
+   "lo": "D3",
+   "hi": "A4",
+   "median": "B3",
+   "n": 424,
+   "out_of_range": 0,
+   "lo_midi": 50,
+   "hi_midi": 69
+  },
+  {
+   "track": "bass",
+   "inst": "エレキベース",
+   "fn": "bass",
+   "lo": "F#1",
+   "hi": "G3",
+   "median": "D#2",
+   "n": 169,
+   "out_of_range": 0,
+   "lo_midi": 30,
+   "hi_midi": 55
+  },
+  {
+   "track": "guitar",
+   "inst": "アコースティックギター",
+   "fn": "comp",
+   "lo": "E2",
+   "hi": "B4",
+   "median": "A3",
+   "n": 481,
+   "out_of_range": 0,
+   "lo_midi": 40,
+   "hi_midi": 71
+  },
+  {
+   "track": "glock",
+   "inst": "鉄琴",
+   "fn": "double",
+   "lo": "B5",
+   "hi": "C#7",
+   "median": "F#6",
+   "n": 57,
+   "out_of_range": 0,
+   "lo_midi": 83,
+   "hi_midi": 97
+  },
+  {
+   "track": "strings",
+   "inst": "弦合奏",
+   "fn": "pad",
+   "lo": "G#3",
+   "hi": "G5",
+   "median": "G#4",
+   "n": 68,
+   "out_of_range": 0,
+   "lo_midi": 56,
+   "hi_midi": 79
+  },
+  {
+   "track": "lead_hi",
+   "inst": "エレキギター（クリーン）",
+   "fn": "melody",
+   "lo": "D#5",
+   "hi": "C#6",
+   "median": "G#5",
+   "n": 32,
+   "out_of_range": 0,
+   "lo_midi": 75,
+   "hi_midi": 85
+  },
+  {
+   "track": "vln",
+   "inst": "ヴァイオリン",
+   "fn": "counter",
+   "lo": "E4",
+   "hi": "E5",
+   "median": "B4",
+   "n": 11,
+   "out_of_range": 0,
+   "lo_midi": 64,
+   "hi_midi": 76
+  },
+  {
+   "track": "choir",
+   "inst": "合唱（ウー）",
+   "fn": "pad",
+   "lo": "D3",
+   "hi": "F#4",
+   "median": "A#3",
+   "n": 32,
+   "out_of_range": 0,
+   "lo_midi": 50,
+   "hi_midi": 66
+  },
+  {
+   "track": "cue_chime",
+   "inst": "鉄琴",
+   "fn": "cue",
+   "lo": "F#5",
+   "hi": "G#6",
+   "median": "C#6",
+   "n": 8,
+   "out_of_range": 0,
+   "lo_midi": 78,
+   "hi_midi": 92
+  },
+  {
+   "track": "cue_hit",
+   "inst": "弦合奏",
+   "fn": "cue",
+   "lo": "E2",
+   "hi": "D5",
+   "median": "C4",
+   "n": 10,
+   "out_of_range": 0,
+   "lo_midi": 40,
+   "hi_midi": 74
+  },
+  {
+   "track": "cue_timp",
+   "inst": "ティンパニ",
+   "fn": "cue",
+   "lo": "D2",
+   "hi": "E2",
+   "median": "D#2",
+   "n": 2,
+   "out_of_range": 0,
+   "lo_midi": 38,
+   "hi_midi": 40
+  }
+ ],
+ "chords": {
+  "rows": [
+   {
+    "time": 0.0,
+    "section": "つかみ",
+    "planned": "D",
+    "roman": "I",
+    "midi": "D",
+    "audio": "D",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 2.0,
+    "section": "つかみ",
+    "planned": "F#m",
+    "roman": "iii",
+    "midi": "F#m",
+    "audio": "F#m",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 4.0,
+    "section": "つかみ",
+    "planned": "G",
+    "roman": "IV",
+    "midi": "G",
+    "audio": "G",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 6.0,
+    "section": "困りごと",
+    "planned": "Bm",
+    "roman": "vi",
+    "midi": "Bm",
+    "audio": "B",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 8.0,
+    "section": "困りごと",
+    "planned": "Em",
+    "roman": "ii",
+    "midi": "Em",
+    "audio": "Em",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 10.0,
+    "section": "困りごと",
+    "planned": "A",
+    "roman": "V",
+    "midi": "A",
+    "audio": "A",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 12.0,
+    "section": "機能紹介1",
+    "planned": "D",
+    "roman": "I",
+    "midi": "D",
+    "audio": "D",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 14.0,
+    "section": "機能紹介1",
+    "planned": "D/F#",
+    "roman": "I/3",
+    "midi": "Dmaj7",
+    "audio": "F#m",
+    "midi_match": true,
+    "audio_match": false
+   },
+   {
+    "time": 16.0,
+    "section": "機能紹介1",
+    "planned": "G",
+    "roman": "IV",
+    "midi": "G",
+    "audio": "G",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 18.0,
+    "section": "機能紹介1",
+    "planned": "A",
+    "roman": "V",
+    "midi": "A",
+    "audio": "A",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 20.0,
+    "section": "機能紹介1",
+    "planned": "D",
+    "roman": "I",
+    "midi": "D",
+    "audio": "D",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 22.0,
+    "section": "機能紹介2",
+    "planned": "D",
+    "roman": "I",
+    "midi": "D",
+    "audio": "D",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 24.0,
+    "section": "機能紹介2",
+    "planned": "G",
+    "roman": "IV",
+    "midi": "G",
+    "audio": "G",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 26.0,
+    "section": "機能紹介2",
+    "planned": "Bm",
+    "roman": "vi",
+    "midi": "Bm",
+    "audio": "Bm",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 28.0,
+    "section": "機能紹介2",
+    "planned": "A",
+    "roman": "V",
+    "midi": "A",
+    "audio": "A",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 30.0,
+    "section": "機能紹介2",
+    "planned": "G",
+    "roman": "IV",
+    "midi": "G",
+    "audio": "G",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 31.0,
+    "section": "機能紹介2",
+    "planned": "B7",
+    "roman": "V7",
+    "midi": "B7",
+    "audio": "B7",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 32.0,
+    "section": "山場",
+    "planned": "E",
+    "roman": "I",
+    "midi": "E",
+    "audio": "E",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 34.0,
+    "section": "山場",
+    "planned": "D",
+    "roman": "bVII",
+    "midi": "D",
+    "audio": "D",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 36.0,
+    "section": "山場",
+    "planned": "A",
+    "roman": "IV",
+    "midi": "A",
+    "audio": "A",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 38.0,
+    "section": "山場",
+    "planned": "E",
+    "roman": "I",
+    "midi": "E",
+    "audio": "E",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 40.0,
+    "section": "山場",
+    "planned": "E",
+    "roman": "I",
+    "midi": "E",
+    "audio": "E",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 42.0,
+    "section": "山場",
+    "planned": "D",
+    "roman": "bVII",
+    "midi": "D",
+    "audio": "D",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 44.0,
+    "section": "山場",
+    "planned": "A",
+    "roman": "IV",
+    "midi": "A",
+    "audio": "Esus4",
+    "midi_match": true,
+    "audio_match": false
+   },
+   {
+    "time": 46.0,
+    "section": "静かな間",
+    "planned": "F#m",
+    "roman": "ii",
+    "midi": "F#m",
+    "audio": "F#m",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 48.0,
+    "section": "静かな間",
+    "planned": "B",
+    "roman": "V",
+    "midi": "B",
+    "audio": "B",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 50.0,
+    "section": "静かな間",
+    "planned": "E",
+    "roman": "I",
+    "midi": "E7",
+    "audio": "E",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 52.0,
+    "section": "ロゴ",
+    "planned": "C#m",
+    "roman": "vi",
+    "midi": "C#m",
+    "audio": "C#m",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 54.0,
+    "section": "ロゴ",
+    "planned": "B",
+    "roman": "V",
+    "midi": "B",
+    "audio": "B",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 56.0,
+    "section": "ロゴ",
+    "planned": "F#m7",
+    "roman": "ii7",
+    "midi": "F#m7",
+    "audio": "F#m7",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 57.01,
+    "section": "ロゴ",
+    "planned": "B7",
+    "roman": "V7",
+    "midi": "B7",
+    "audio": "B",
+    "midi_match": true,
+    "audio_match": true
+   },
+   {
+    "time": 58.05,
+    "section": "ロゴ",
+    "planned": "E",
+    "roman": "I",
+    "midi": "E",
+    "audio": "E",
+    "midi_match": true,
+    "audio_match": true
+   }
+  ],
+  "midi_match": 1.0,
+  "audio_match": 0.938,
+  "unique": 12
+ },
+ "repetition": {
+  "bars": 30,
+  "exact_duplicates": [],
+  "consecutive_duplicates": [],
+  "unique_bars": 30,
+  "near_audio": [],
+  "near_audio_count": 0
+ },
+ "clipping": {
+  "samples_at_full_scale": 0,
+  "true_peak_db": -1.05,
+  "sample_peak_db": -1.2,
+  "stems_over_0db": []
+ },
+ "mechanical": {
+  "velocity_sd": {
+   "lead": 9.1,
+   "keys": 13.6,
+   "bass": 13.5,
+   "shaker": 9.9,
+   "drums": 15.0,
+   "guitar": 17.2,
+   "glock": 7.8,
+   "strings": 8.3,
+   "lead_hi": 5.6,
+   "vln": 5.5,
+   "choir": 4.6
+  },
+  "timing_sd_ms": {
+   "lead": 5.4,
+   "keys": 9.2,
+   "bass": 5.1,
+   "shaker": 3.5,
+   "drums": 11.9,
+   "guitar": 17.1,
+   "glock": 6.1,
+   "strings": 3.5,
+   "lead_hi": 5.2,
+   "vln": 4.8,
+   "choir": 3.3
+  },
+  "families": [
+   "bass",
+   "bowed",
+   "choir",
+   "drums",
+   "keys",
+   "mallet",
+   "pluck"
+  ],
+  "n_families": 7,
+  "stereo_correlation": 0.86,
+  "reverb_tail_db": -15.9,
+  "spectral_flux": 0.759,
+  "engine": "fluidsynth",
+  "verdict": []
+ },
+ "cues": [
+  {
+   "time": 0.5,
+   "type": "chime",
+   "note": "アプリのアイコンが出る",
+   "effect": "立ち上がり 1.51（周りの拍頭=1、ずれ -9ms）",
+   "ok": true
+  },
+  {
+   "time": 6.0,
+   "type": "whoosh",
+   "note": "画面が横に流れる",
+   "effect": "立ち上がり 1.23（周りの拍頭=1、ずれ +16ms）",
+   "ok": true
+  },
+  {
+   "time": 12.0,
+   "type": "hit",
+   "note": "機能紹介のタイトル",
+   "effect": "立ち上がり 1.97（周りの拍頭=1、ずれ +11ms）",
+   "ok": true
+  },
+  {
+   "time": 14.0,
+   "type": "click",
+   "note": "ボタンを押す",
+   "effect": "立ち上がり 3.53（周りの拍頭=1、ずれ -5ms）",
+   "ok": true
+  },
+  {
+   "time": 16.5,
+   "type": "click",
+   "note": "2回目のタップ",
+   "effect": "立ち上がり 1.30（周りの拍頭=1、ずれ -9ms）",
+   "ok": true
+  },
+  {
+   "time": 32.0,
+   "type": "riser",
+   "note": "山場への溜め（28〜32秒、at は溜めの終わり）",
+   "effect": "高域 +5.4 dB の上昇",
+   "ok": true
+  },
+  {
+   "time": 32.0,
+   "type": "impact",
+   "note": "山場の頭",
+   "effect": "立ち上がり 1.21（周りの拍頭=1、ずれ -64ms）",
+   "ok": true
+  },
+  {
+   "time": 44.0,
+   "type": "break",
+   "note": "拍を落とす（44〜46秒）",
+   "effect": "-6.4 dB",
+   "ok": true
+  },
+  {
+   "time": 52.0,
+   "type": "swell",
+   "note": "ロゴへ",
+   "effect": "高域 +25.7 dB の上昇",
+   "ok": true
+  },
+  {
+   "time": 52.5,
+   "type": "chime",
+   "note": "ロゴが光る",
+   "effect": "立ち上がり 3.37（周りの拍頭=1、ずれ +1ms）",
+   "ok": true
+  }
+ ],
+ "flags": []
+}
