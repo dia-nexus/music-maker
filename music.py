@@ -25,12 +25,34 @@ sys.path.insert(0, HERE)
 GU_URL = 'https://raw.githubusercontent.com/mrbumpy409/GeneralUser-GS/main/GeneralUser-GS.sf2'
 GU_LICENSE_URL = 'https://raw.githubusercontent.com/mrbumpy409/GeneralUser-GS/main/documentation/LICENSE.txt'
 GU_SIZE = 32319396
+GU_NPM_URL = 'https://registry.npmjs.org/generaluser/-/generaluser-1.47.1.tgz'  # GitHub に届かないとき（npm の registry は pip と同じく「パッケージの置き場」として通ることが多い）
 SALAMANDER_URL = 'https://freepats.zenvoid.org/Piano/SalamanderGrandPiano/SalamanderGrandPiano-SF2-V3+20200602.tar.xz'
 PIP_PKGS = ['numpy', 'scipy', 'pyyaml', 'mido', 'soundfile', 'pyloudnorm', 'pedalboard', 'matplotlib']
 
 
 def log(msg):
     print(msg, flush=True)
+
+
+def write_mp3(master, sr, out):
+    """試聴用の mp3。ffmpeg が無い所（チャットなど）では pip の lameenc で書く。"""
+    path = os.path.join(out, 'preview.mp3')
+    if shutil.which('ffmpeg'):
+        subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', os.path.join(out, 'master.wav'), '-b:a', '192k', path])
+        return
+    try:
+        import lameenc
+    except ImportError:
+        return
+    import numpy as np
+    enc = lameenc.Encoder()
+    enc.set_bit_rate(192)
+    enc.set_in_sample_rate(sr)
+    enc.set_channels(2)
+    enc.set_quality(2)
+    pcm = (np.clip(master, -1, 1) * 32767).astype('<i2')
+    with open(path, 'wb') as f:
+        f.write(enc.encode(pcm.tobytes()) + enc.flush())
 
 
 def cmd_setup(a):
@@ -42,6 +64,11 @@ def cmd_setup(a):
             __import__(mod)
         except ImportError:
             missing.append(pkg)
+    if not shutil.which('ffmpeg'):
+        try:
+            __import__('lameenc')
+        except ImportError:
+            missing.append('lameenc')   # ffmpeg が無い所で試聴用の mp3 を書くため
     if missing:
         subprocess.run([sys.executable, '-m', 'pip', 'install', '-q'] + missing, check=False)
     log('2/3 FluidSynth（MIDI を SoundFont で鳴らす道具）')
@@ -50,7 +77,14 @@ def cmd_setup(a):
             subprocess.run('apt-get update -qq >/dev/null 2>&1; apt-get install -y -qq fluidsynth fluid-soundfont-gm >/dev/null 2>&1', shell=True)
         elif shutil.which('brew'):
             subprocess.run(['brew', 'install', 'fluid-synth'])
-    log('   ' + ('入っている' if shutil.which('fluidsynth') else '入れられなかった（合成音で鳴らす）'))
+    if shutil.which('fluidsynth'):
+        log('   入っている')
+    else:
+        # apt が使えない所（claude.ai のチャットなど）。pip だけで入る tinysoundfont で代わりに鳴らす。
+        # 依存の pyaudio はその場で鳴らすためのもので、ここでは使わない（入れようとすると組み立てで失敗する）ので --no-deps
+        subprocess.run([sys.executable, '-m', 'pip', 'install', '-q', '--no-deps', 'tinysoundfont'], check=False)
+        from mm import render as _r
+        log('   入れられなかった。代わりに tinysoundfont（pip）で鳴らす' if _r.has_tsf() else '   入れられなかった（合成音で鳴らす）')
     log('3/3 GeneralUser GS（GM の SoundFont、約31MB）')
     from mm import render
     # @couple:soundfont-paths 取得先や置き場所を変えたら render.find_soundfont の探す順と README の音源の節も
@@ -71,8 +105,11 @@ def cmd_setup(a):
             else:
                 os.remove(tmp)
                 log('   取れたファイルが SoundFont ではなかった（プロキシの拒否画面など）')
+                _fallback_soundfont(render)
         else:
-            log('   取れなかった。FluidR3_GM（apt）か合成音で鳴らす')
+            if os.path.exists(tmp):
+                os.remove(tmp)
+            _fallback_soundfont(render)
     if a.extra == 'salamander':
         log('おまけ：Salamander Grand Piano V3（ピアノだけ差し替え。CC-BY 3.0 Alexander Holm、約300MB）')
         sal = os.path.join(os.path.dirname(dst), 'SalamanderGrandPiano-V3.sf2')
@@ -96,6 +133,38 @@ def cmd_setup(a):
             else:
                 log('   取れなかった（freepats.zenvoid.org に届かない）。ピアノは GeneralUser GS のまま')
     cmd_doctor(a)
+
+
+def _fallback_soundfont(render):
+    """GitHub に届かないとき（チャットの既定は pip・npm などの置き場にしか出られない）。
+    npm の registry にある GeneralUser GS 1.47（旧版、同じ作者・同じ許諾）→ pip の pretty_midi に入っている TimGM6mb の順に試す。"""
+    if render.find_soundfont():
+        log('   GitHub には届かなかった。手元の ' + os.path.basename(render.find_soundfont()) + ' で鳴らす')
+        return
+    log('   GitHub には届かなかった。npm の registry から GeneralUser GS 1.47 を取る')
+    import tarfile
+    dst = render.CACHE_SF2_OLD
+    tgz = dst + '.tgz'
+    r = subprocess.run(['curl', '-fsSL', '--retry', '3', '-o', tgz, GU_NPM_URL])
+    if r.returncode == 0:
+        try:
+            with tarfile.open(tgz) as tf:
+                for m in tf.getmembers():
+                    if m.name.lower().endswith('.sf2'):
+                        with tf.extractfile(m) as src, open(dst, 'wb') as out:
+                            shutil.copyfileobj(src, out)
+                        break
+        except tarfile.TarError:
+            pass
+    if os.path.exists(tgz):
+        os.remove(tgz)
+    if os.path.exists(dst) and os.path.getsize(dst) > 1_000_000:
+        log('   取得した：' + dst)
+        return
+    log('   取れなかった。pip の pretty_midi に入っている小さな音源（TimGM6mb、約6MB）を使う')
+    subprocess.run([sys.executable, '-m', 'pip', 'install', '-q', '--no-deps', 'pretty_midi'], check=False)
+    sf2 = render.find_soundfont()
+    log('   ' + ('使える：' + sf2 if sf2 else '取れなかった。合成音で鳴らす'))
 
 
 def cmd_doctor(a):
@@ -191,9 +260,8 @@ def cmd_make(a):
         os.makedirs(sd, exist_ok=True)
         for k, v in out_stems.items():
             sf.write(os.path.join(sd, f'{k}.wav'), v, sr, subtype='PCM_24')
-    if shutil.which('ffmpeg') and not a.wav_only:
-        subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', os.path.join(out, 'master.wav'), '-b:a', '192k',
-                        os.path.join(out, 'preview.mp3')])
+    if not a.wav_only:
+        write_mp3(master, sr, out)
     t0 = time.time()
     rep = check.analyze(master, out_stems, score, sr, out, info, stats)
     html_report(out, rep)

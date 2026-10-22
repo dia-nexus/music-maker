@@ -219,6 +219,26 @@ class Render(unittest.TestCase):
             self.assertTrue(os.path.exists(os.path.join(d, 'images', 'spectrogram.png')))
             self.assertEqual(rep['clipping']['samples_at_full_scale'], 0)
 
+    def test_tinysoundfont_without_fluidsynth(self):
+        # チャットのように fluidsynth（apt）が無い所では、pip の tinysoundfont で SoundFont を鳴らす
+        from mm import render
+        if not render.has_tsf() or not render.find_soundfont():
+            self.skipTest('tinysoundfont か SoundFont が無い')
+        sp = spec.normalize(dict(style='acoustic', tempo=120, sections=[dict(name='a', bars=2), dict(name='b', bars=1, role='outro')]))
+        sc = compose.compose(sp)
+        old = os.environ.get('MUSIC_MAKER_ENGINE')
+        os.environ['MUSIC_MAKER_ENGINE'] = 'tinysoundfont'
+        try:
+            stems, info = render.render_stems(sc, 24000, log=lambda *_: None)
+        finally:
+            if old is None:
+                os.environ.pop('MUSIC_MAKER_ENGINE')
+            else:
+                os.environ['MUSIC_MAKER_ENGINE'] = old
+        self.assertEqual(info['engine'], 'tinysoundfont')
+        loud = [k for k, v in stems.items() if float(abs(v).max()) > 1e-3]
+        self.assertGreaterEqual(len(loud), len(stems) - 1, '鳴っていない楽器が多い')
+
 
 if __name__ == '__main__':
     unittest.main()

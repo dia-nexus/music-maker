@@ -33,7 +33,7 @@ python3 "$MM"/music.py setup     # pip の部品、FluidSynth（apt）、General
 python3 "$MM"/music.py doctor    # どの音源で鳴るかを確かめる
 ```
 
-コンテナは使い捨てなので、新しいセッションでは毎回 setup から。GeneralUser GS は raw.githubusercontent.com から取る（2026-10 時点で取れた）。取れなければ apt の FluidR3_GM、それも無ければサンプルを使わない合成音で鳴る。doctor の1行目が `GeneralUser-GS.sf2（fluidsynth）` なら標準の状態。
+コンテナは使い捨てなので、新しいセッションでは毎回 setup から。GeneralUser GS は raw.githubusercontent.com から取る（2026-10 時点で取れた）。取れなければ npm の registry にある旧版（GeneralUser GS 1.47）、それも取れなければ pip の pretty_midi に入っている小さな音源（TimGM6mb）、最後はサンプルを使わない合成音で鳴る。FluidSynth を apt で入れられないときは、pip の tinysoundfont で同じ SoundFont を鳴らす。doctor の1行目が `GeneralUser-GS.sf2（fluidsynth）` なら標準の状態。
 
 ピアノが主役の曲なら `setup --extra salamander` でピアノだけ Salamander Grand Piano（実際のグランドピアノを16段階の強さで録った音源）に差し替えられる。落とすのに1〜3分、展開後 1.27GB。曲を外に出すときは「Salamander Grand Piano V3 by Alexander Holm, CC-BY 3.0」のクレジットを添える。
 

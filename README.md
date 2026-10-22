@@ -12,7 +12,22 @@
 git clone https://github.com/dia-nexus/music-maker ~/.claude/skills/music-maker
 ```
 
-これで Claude Code が「BGM を作って」「効果音を入れて」のような頼みで `SKILL.md` を読み、この道具を使います。プロジェクトだけで使うなら `.claude/skills/music-maker` に置きます。claude.ai や Claude Desktop で使うときは、このフォルダを zip にしてスキルとして読み込ませます（音を鳴らすには Python と FluidSynth が動く環境が要ります）。
+これで Claude Code が「BGM を作って」「効果音を入れて」のような頼みで `SKILL.md` を読み、この道具を使います。プロジェクトだけで使うなら `.claude/skills/music-maker` に置きます。
+
+## claude.ai のチャットで使う
+
+チャット用に書き換えたスキルを `chat/music-maker.zip` に置いています。
+
+1. [chat/music-maker.zip](https://github.com/dia-nexus/music-maker/raw/main/chat/music-maker.zip) を落とす
+2. claude.ai の設定で「コードの実行とファイルの作成」を入れる
+3. 設定のスキルの欄から、落とした zip を上げる
+4. チャットで「30秒の明るい BGM を作って」のように頼む
+
+チャットでは、Claude がその会話の実行環境に部品と音源を入れ（1〜2分）、曲を作って `master.wav`・`preview.mp3`・報告を渡します。FluidSynth が入らない環境でも、pip で入る tinysoundfont で同じ SoundFont を鳴らします。音源は GitHub → npm → pip の順に、届く所から取ります。どこにも届かないと合成音になるので、そのときは設定の「コードの実行」でネットワークの許可を広げてください。
+
+区切りやきっかけを自分で触りたいときは「編集画面をちょうだい」と頼むと `editor.html` が渡されます。手元のブラウザで開いて直し、書き出した YAML をチャットに貼れば、その通りに作り直します。
+
+## Claude Code で使うときの準備
 
 最初に一度、音源と部品を入れます。
 
@@ -20,7 +35,7 @@ git clone https://github.com/dia-nexus/music-maker ~/.claude/skills/music-maker
 python3 ~/.claude/skills/music-maker/music.py setup
 ```
 
-必要なのは Python 3.10 以上と、numpy・scipy・PyYAML・matplotlib（setup が pip で入れる）、FluidSynth（setup が apt で入れる。macOS なら `brew install fluid-synth`）、mp3 を書くなら ffmpeg。FluidSynth が無くても、合成音で鳴らせます（音は落ちます）。
+必要なのは Python 3.10 以上と、numpy・scipy・PyYAML・matplotlib（setup が pip で入れる）、FluidSynth（setup が apt で入れる。macOS なら `brew install fluid-synth`）。mp3 は ffmpeg があればそれで、無ければ pip の lameenc で書きます。FluidSynth が入らなければ、pip の tinysoundfont で代わりに鳴らします。
 
 ## 使い方（コマンド）
 
@@ -89,6 +104,8 @@ python3 music.py make examples/promo-60s.yaml -o out/promo
 
 - GeneralUser GS（S. Christian Collins）：自作の曲への利用は商用を含め制限なし。setup が取得します。このリポジトリには含みません
 - Salamander Grand Piano V3（Alexander Holm、CC-BY 3.0）：`setup --extra salamander` で入れたときだけ使います。曲を公開するときはクレジットを添えてください
+- GeneralUser GS 1.47（同じ作者の旧版、npm の generaluser パッケージ）：GitHub に届かないときに使います
+- TimGM6mb（Tim Brechbill、GPL-2.0、pip の pretty_midi に同梱）：GitHub にも npm にも届かないときに使います
 - FluidR3_GM（MIT）：OS に入っていれば使います
 
 ## ライセンス
