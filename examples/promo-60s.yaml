@@ -1,5 +1,5 @@
 # 宣伝ムービー（60秒）の曲の設計図。
-#   python3 music.py make examples/promo-60s.yaml -o out/promo
+#   python3 tools/music/music.py make tools/music/examples/promo-60s.yaml -o out/promo
 # 120BPM・4/4 なので 1小節 = 2秒。区切りの長さは秒でも小節でも書ける。
 title: アプリ宣伝ムービー 60秒
 style: bright_pop

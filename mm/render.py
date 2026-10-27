@@ -2,7 +2,7 @@
 
 音源の選び方（上から順に、見つかったものを使う）：
   1. 環境変数 MUSIC_SF2 で指定した SoundFont
-  2. .cache/GeneralUser-GS.sf2（`python3 music.py setup` で取得）
+  2. tools/music/.cache/GeneralUser-GS.sf2（`python3 tools/music/music.py setup` で取得）
   3. .cache/GeneralUser-GS-1.47.sf2（GitHub に届かないとき、setup が npm の registry から取る旧版）
   4. /usr/share/sounds/sf2/FluidR3_GM.sf2（apt の fluid-soundfont-gm）
   5. pretty_midi に入っている TimGM6mb.sf2（pip だけで取れる小さな音源）
@@ -150,6 +150,9 @@ def render_stems(score, sr=48000, force_synth=False, workdir=None, log=print):
                 a = np.repeat(a, 2, axis=1)
             stems[tid] = _fit(a, n)
         log(f'音源：{"FluidSynth" if info["engine"] == "fluidsynth" else "tinysoundfont"} ＋ {info["name"]}（{len(jobs)} 本の楽器を並べて書き出し）')
+        if not workdir:
+            # 一時フォルダは読み終えたら消す（楽器ごとの 32bit の wav で、1回 300MB を超える。残すと書き出すたびに溜まり、ディスクが埋まった。2026-10-27）
+            shutil.rmtree(tmp, ignore_errors=True)
     else:
         log(f'音源：{info["name"]}（{info.get("why", "")}）')
         for tid, tr in score.tracks.items():

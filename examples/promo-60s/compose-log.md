@@ -2,13 +2,13 @@
 
 - つかみ（intro・bright）：和声 I iii IV V  調 D major
 - 困りごと（verse・tense）：和声 vi ii V I  調 D major
-- 機能紹介1（verse・bright）：和声 I I/3 IV V  調 D major
-- 機能紹介2（build・bright）：和声 I IV vi V  調 D major
+- 機能紹介1（verse・bright）：和声 vi ii V I  調 D major
+- 機能紹介2（build・bright）：和声 I I/3 IV V  調 D major
 - 機能紹介2：終止 half（IV V）
 - 機能紹介2→山場：D major から E major へ、属七で橋渡しして転調
-- 山場（chorus・epic）：和声 I bVII IV I  調 E major
+- 山場（chorus・epic）：和声 I V vi IV  調 E major
 - 静かな間（break・calm）：和声 ii V I vi  調 E major
-- ロゴ（outro・epic）：和声 vi V IV V  調 E major
+- ロゴ（outro・epic）：和声 vi IV I V  調 E major
 - ロゴ：終止 authentic（ii7 V7 I）
 - つかみ：編成 ピアノ（melody）、ピアノ（comp）、エレキベース（bass）、ドラム（perc）
 - 困りごと：編成 ピアノ（melody）、ピアノ（comp）、エレキベース（bass）、ドラム（drums）、ドラム（perc）
@@ -16,8 +16,8 @@
 - 機能紹介2：編成 ピアノ（melody）、鉄琴（double）、ヴァイオリン（counter）、弦合奏（pad）、ピアノ（comp）、アコースティックギター（comp）、エレキベース（bass）、ドラム（drums）、ドラム（perc）
 - 山場：編成 エレキギター（クリーン）（melody）、鉄琴（double）、ヴァイオリン（counter）、弦合奏（pad）、合唱（ウー）（pad）、ピアノ（comp）、アコースティックギター（comp）、エレキベース（bass）、ドラム（drums）
 - 静かな間：編成 ピアノ（melody）、ピアノ（comp）、エレキベース（bass）
-- ロゴ：編成 ピアノ（melody）、鉄琴（double）、弦合奏（pad）、ピアノ（comp）、アコースティックギター（comp）、エレキベース（bass）、ドラム（drums）、ドラム（perc）
-- 動機A：リズム [0, 0.5, 1, 2, 2.5] 音の動き [0, -2, -3, -1, 0]
+- ロゴ：編成 ピアノ（melody）、弦合奏（pad）、ピアノ（comp）、アコースティックギター（comp）、エレキベース（bass）、ドラム（drums）、ドラム（perc）
+- 動機A：リズム [0, 1, 1.5, 2, 3.5] 音の動き [0, 1, 2, 0, -1]
 - きっかけ chime @ 0.50秒（つかみ）アプリのアイコンが出る
 - きっかけ whoosh @ 6.00秒（困りごと）画面が横に流れる
 - きっかけ hit @ 12.00秒（機能紹介1）機能紹介のタイトル
@@ -28,4 +28,4 @@
 - きっかけ break @ 44.00秒（山場）拍を落とす（44〜46秒）
 - きっかけ swell @ 52.00秒（ロゴ）ロゴへ
 - きっかけ chime @ 52.50秒（ロゴ）ロゴが光る
-- 同じ小節の解消：1 か所を変えた
+- 同じ小節の解消：0 か所を変えた

@@ -99,7 +99,7 @@ small.num{color:var(--sub);min-width:2.4em;display:inline-block}
 <section>
   <h2>区切り</h2>
   <p class="hint">勢いは 0〜1。空欄なら役割の既定（つかみ 0.35、山場 0.92 など）。楽器は様式の役の名前を空白で区切って書き、+choir で足し、-drums で抜きます。</p>
-  <div class="scroll"><table id="secs"><thead><tr><th>名前</th><th>長さ</th><th>役割</th><th>気分</th><th>勢い</th><th>調（転調）</th><th>楽器</th><th></th></tr></thead><tbody></tbody></table></div>
+  <div class="scroll"><table id="secs"><thead><tr><th>名前</th><th>長さ</th><th>役割</th><th>気分</th><th>勢い</th><th>調（転調）</th><th>楽器</th><th title="平歌・盛り上げ・山場の2回め以降に、1回めと同じ和音と旋律を使う">前と同じ</th><th></th></tr></thead><tbody></tbody></table></div>
   <button id="addSec">区切りを足す</button>
 </section>
 
@@ -178,7 +178,7 @@ function render(){
   $('yaml').value=toYaml(S);
   $('total').textContent=`全体 ${total().toFixed(1)} 秒（${(total()/secPerBar()).toFixed(1)} 小節）`;
   $('makeHint').textContent = served ? '作るのに 30 秒〜1 分半かかります。出来上がったら、ここで聴けて、確かめの報告も開けます。'
-    : 'この画面をファイルとして開いているので、ここからは作れません。YAML を保存して python3 music.py make 設計図.yaml -o out/曲 を流すか、python3 music.py serve で開き直すと、このボタンで作れます。';
+    : 'この画面をファイルとして開いているので、ここからは作れません。YAML を保存して python3 tools/music/music.py make 設計図.yaml -o out/曲 を流すか、python3 tools/music/music.py serve で開き直すと、このボタンで作れます。';
   $('make').disabled=!served;
 }
 function cell(tag,attrs,html){const e=document.createElement(tag);Object.assign(e,attrs||{});if(html!=null)e.innerHTML=html;return e}
@@ -205,6 +205,10 @@ function renderSecs(){
     td([e,num,auto]);
     td(inp(s.key,v=>{if(v.trim())s.key=v.trim();else delete s.key},{placeholder:'例 E major',style:'width:7em'}));
     td(inp(Array.isArray(s.instruments)?s.instruments.join(' '):s.instruments,v=>{const a=v.trim().split(/\s+/).filter(Boolean);if(a.length)s.instruments=a;else delete s.instruments},{placeholder:'+choir -drums',style:'width:9em'}));
+    // 同じ役の2回め以降は1回めの和音と旋律を繰り返す（既定）。外すと作り直す（設計図の repeat: false）
+    const rp=cell('input',{type:'checkbox',checked:s.repeat!==false,title:'平歌・盛り上げ・山場の2回め以降に、1回めと同じ和音と旋律を使う',ariaLabel:`「${s.name}」は前の同じ役と同じ和音と旋律にする`});
+    rp.addEventListener('change',()=>commit(()=>{if(rp.checked)delete s.repeat;else s.repeat=false}));
+    td(rp);
     const up=cell('button',{textContent:'↑',title:'前へ'}); up.onclick=()=>i&&commit(()=>S.sections.splice(i-1,0,S.sections.splice(i,1)[0]));
     const dn=cell('button',{textContent:'↓',title:'後ろへ'}); dn.onclick=()=>i<S.sections.length-1&&commit(()=>S.sections.splice(i+1,0,S.sections.splice(i,1)[0]));
     const del=cell('button',{textContent:'消す'}); del.onclick=()=>S.sections.length>1?commit(()=>S.sections.splice(i,1),`「${s.name}」を消しました。戻すで元に戻せます`):toast('区切りは1つ以上要ります');
@@ -281,7 +285,7 @@ function yv(v){if(typeof v==='number')return String(v);if(v==null)return '""';co
 function flow(o){return '{ '+Object.entries(o).filter(([k,v])=>v!==undefined&&v!=='').map(([k,v])=>`${k}: ${Array.isArray(v)?'['+v.map(yv).join(', ')+']':yv(v)}`).join(', ')+' }'}
 function toYaml(s){
   const L=[`title: ${yv(s.title)}`,`style: ${s.style}`,`tempo: ${s.tempo}`,`meter: ${yv(s.meter)}`,`key: ${yv(s.key)}`,`seed: ${s.seed||1}`,'','sections:'];
-  for(const x of s.sections){L.push(`  - name: ${yv(x.name)}`);for(const k of ['bars','seconds','role','mood','energy','key','instruments'])if(x[k]!==undefined&&x[k]!=='')L.push(`    ${k}: ${Array.isArray(x[k])?'['+x[k].map(yv).join(', ')+']':yv(x[k])}`)}
+  for(const x of s.sections){L.push(`  - name: ${yv(x.name)}`);for(const k of ['bars','seconds','role','mood','energy','key','instruments','repeat'])if(x[k]!==undefined&&x[k]!=='')L.push(`    ${k}: ${Array.isArray(x[k])?'['+x[k].map(yv).join(', ')+']':yv(x[k])}`)}
   L.push('','cues:'); if(!s.cues.length)L[L.length-1]='cues: []'; for(const c of s.cues)L.push('  - '+flow(c));
   L.push('','narration:'); if(!(s.narration||[]).length)L[L.length-1]='narration: []'; for(const n of s.narration||[])L.push('  - '+flow(n));
   L.push('',`mix: ${flow(s.mix||{loudness:-14,true_peak:-1})}`);

@@ -1,4 +1,4 @@
-"""音楽づくりの道具のテスト。python3 -m unittest discover -s tests"""
+"""音楽づくりの道具のテスト。python3 -m unittest discover -s tools/music/tests"""
 import math
 import os
 import sys
@@ -188,6 +188,41 @@ class Compose(unittest.TestCase):
         tracks_in = lambda a, z: {tid for tid, tr in sc.tracks.items() if tr.fn != 'cue' and any(a <= n.start < z for n in tr.notes)}
         self.assertGreater(len(tracks_in(b.end - 4, b.end)), len(tracks_in(b.start, b.start + 4)))
         self.assertGreater(sum(n.vel for n in last) / len(last), sum(n.vel for n in first) / len(first))
+
+    def test_performance_is_connected_and_soft(self):
+        """弾き方：旋律はつながり、鍵盤は和音の替わり目の直後でペダルを踏み替え、伴奏は旋律より弱い（2026-10-27 の指摘「ボンボン叩いている」）。"""
+        sc = compose.compose(small())
+        lead, keys = sc.tracks['lead'], sc.tracks['keys']
+        ns = sorted(lead.notes, key=lambda n: n.start)
+        pairs = [(a, b) for a, b in zip(ns, ns[1:]) if 0 < b.start - a.start <= 1.0]
+        gaps = [b.start - a.end for a, b in pairs]
+        self.assertLess(sum(g > 0.05 for g in gaps) / max(1, len(gaps)), 0.1, '1拍以内に続く旋律の音のあいだが空いている')
+        ped = sorted(c for c in keys.cc if c[1] == 64)
+        self.assertTrue(ped, '伴奏のピアノがペダルを踏んでいない')
+        for t, _, v in ped:
+            if v == 0 and t < max(n.end for n in keys.notes):
+                span = sc.chord_at(t)
+                self.assertGreaterEqual(t - span.start, 0, 'ペダルを和音の替わり目より前に上げている（音が途切れる）')
+                self.assertLess(t - span.start, 0.1)
+        self.assertLessEqual(max(n.vel for n in keys.notes), 95, '伴奏の打鍵が強すぎる')
+        self.assertLessEqual(max(n.vel for n in lead.notes), 105)
+        self.assertTrue(any(c[1] == 64 for c in lead.cc), '旋律のピアノにペダルがない')
+
+    def test_staccato_melody_stays_short_and_repeat_can_be_turned_off(self):
+        """スタッカートの旋律はつながない。repeat: false の区切りは、前の同じ役の旋律を写さない（2026-10-27）。"""
+        sc = compose.compose(small('playful'))
+        lead = sc.tracks['lead']
+        ns = sorted(lead.notes, key=lambda n: n.start)
+        short = [a for a, b in zip(ns, ns[1:]) if 0 < b.start - a.start <= 1 and a.dur < 0.8 * (b.start - a.start)]
+        self.assertTrue(short, 'スタッカートの旋律が全部つながっている')
+        secs = [dict(name='A', bars=2, role='verse'), dict(name='B', bars=2, role='build'), dict(name='A2', bars=2, role='verse'), dict(name='終わり', bars=2, role='outro')]
+        rel = lambda sc, name: [(round(t - s.start, 2), p) for t, d, p, s, pos, lb in sc.melody_line if s.name == name]
+        same = compose.compose(small(sections=secs))
+        self.assertEqual(rel(same, 'A'), rel(same, 'A2'), '同じ役の2回目が1回目と違う')
+        secs[2]['repeat'] = False
+        diff = compose.compose(small(sections=secs))
+        self.assertTrue(any('繰り返す' in l for l in same.log))
+        self.assertFalse(any('A2' in l and '繰り返す' in l for l in diff.log))
 
     def test_instruments_override(self):
         raw = dict(style='cinematic', sections=[dict(name='a', bars=2, instruments=['harp', 'strings']),

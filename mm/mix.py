@@ -19,7 +19,7 @@ FAMILY = {
     'keys':    dict(hp=90,  send=0.20, eq=[('peak', 300, -3.5, 0.9)], comp=(-20, 2.0)),
     'epiano':  dict(hp=80,  send=0.18, eq=[('peak', 300, -2.5, 0.9)], comp=(-18, 2.0)),
     'mallet':  dict(hp=180, send=0.30, eq=[], comp=None),
-    'pluck':   dict(hp=100, send=0.22, eq=[('peak', 250, -3.5, 0.9), ('peak', 3500, 2.0, 0.8)], comp=(-20, 2.5)),
+    'pluck':   dict(hp=100, send=0.22, eq=[('peak', 250, -3.5, 0.9), ('peak', 3500, 0.5, 0.8)], comp=(-20, 2.5)),
     'bass':    dict(hp=30,  send=0.04, eq=[('low', 90, 4.0, 0.7), ('peak', 300, -4.0, 0.8)], comp=(-18, 3.5)),
     'bowed':   dict(hp=45,  send=0.36, eq=[('peak', 350, -3.0, 0.8)], comp=None),
     'brass':   dict(hp=55,  send=0.28, eq=[], comp=(-16, 2.0)),
@@ -29,7 +29,10 @@ FAMILY = {
     'timpani': dict(hp=30,  send=0.30, eq=[], comp=None),
     'drums':   dict(hp=30,  send=0.10, eq=[('peak', 400, -2.0, 1.0)], comp=(-16, 3.0)),
 }
-MELODY_PRESENCE = ('peak', 3000, 1.5, 0.8)
+MELODY_PRESENCE = ('peak', 2600, 0.5, 0.7)
+# 打つ楽器（ピアノ・ギター・鉄琴）の当たりを丸める：速い圧縮で打った瞬間の山だけを削り、高域を少し落とす。
+# 2026-10-27 の指摘「曲が少し立ってる。エフェクトの問題としてもう少し柔らかくできそう」。前は旋律に 3kHz を +1.5dB、ギターに 3.5kHz を +2dB 足し、当たりは素通しだった
+SOFTEN = ('keys', 'epiano', 'pluck', 'mallet')
 
 
 def _lufs(meter, x):
@@ -77,6 +80,13 @@ def _chain(track, is_melody):
     if fam['comp']:
         th, ratio = fam['comp']
         fx.append(Compressor(threshold_db=th, ratio=ratio, attack_ms=12 if track.family != 'drums' else 4, release_ms=150))
+    if track.family in SOFTEN:
+        fx.append(Compressor(threshold_db=-26, ratio=2.2, attack_ms=1.5, release_ms=80))
+        fx.append(HighShelfFilter(cutoff_frequency_hz=6500, gain_db=-2.0))
+    if track.family == 'drums' and track.fn != 'cue':
+        # ハイハット・スネアの当たりも少し丸める（効果音の打音は丸めない）
+        fx.append(HighShelfFilter(cutoff_frequency_hz=7000, gain_db=-2.5))
+        fx.append(Compressor(threshold_db=-22, ratio=2.0, attack_ms=2, release_ms=60))
     return Pedalboard(fx)
 
 
@@ -166,7 +176,9 @@ def master_chain(bus, spec, sr, meter, log):
     low = signal.lfilter(b, a, x, axis=0)
     x = x - low + low.mean(1, keepdims=True)
     x = x.astype(np.float32)
-    fx = [Compressor(threshold_db=-18, ratio=st.get('glue', 2.0), attack_ms=30, release_ms=250),
+    # まとめの圧縮は当たりを少し捕まえる速さ（30ms だと打った瞬間を素通しした）。高域は 5kHz からなだらかに少し落とし、9kHz の空気感は様式の値
+    fx = [Compressor(threshold_db=-18, ratio=st.get('glue', 2.0), attack_ms=12, release_ms=250),
+          HighShelfFilter(cutoff_frequency_hz=5000, gain_db=-1.0),
           HighShelfFilter(cutoff_frequency_hz=9000, gain_db=st.get('air', 1.0)),
           LowShelfFilter(cutoff_frequency_hz=90, gain_db=0.5)]
     if st.get('lofi'):

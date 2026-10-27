@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """音楽づくりの道具（Claude 用）。設計図（YAML/JSON）から、作曲 → MIDI → 生楽器に近い音 → ミックス → 確かめの報告、まで。
 
-  python3 music.py setup                       必要なもの（pip・FluidSynth・GeneralUser GS）を入れる
-  python3 music.py doctor                      いま使える音源と道具を見る
-  python3 music.py styles                      様式のひな形の一覧
-  python3 music.py new --style cinematic --seconds 30 > spec.yaml   設計図のひな形を作る
-  python3 music.py make spec.yaml -o out/x     曲を作り、WAV・MIDI・stems・報告を書き出す
-  python3 music.py compose spec.yaml -o out/x  MIDI と作曲の記録だけ（数秒で終わる。和声や構成の下書きに）
-  python3 music.py serve                       人が使う編集画面（http://127.0.0.1:8765/）
+  python3 tools/music/music.py setup                       必要なもの（pip・FluidSynth・GeneralUser GS）を入れる
+  python3 tools/music/music.py doctor                      いま使える音源と道具を見る
+  python3 tools/music/music.py styles                      様式のひな形の一覧
+  python3 tools/music/music.py new --style cinematic --seconds 30 > spec.yaml   設計図のひな形を作る
+  python3 tools/music/music.py make spec.yaml -o out/x     曲を作り、WAV・MIDI・stems・報告を書き出す
+  python3 tools/music/music.py compose spec.yaml -o out/x  MIDI と作曲の記録だけ（数秒で終わる。和声や構成の下書きに）
+  python3 tools/music/music.py serve                       人が使う編集画面（http://127.0.0.1:8765/）
 
 make の主なオプション：--seed N（別の案）、--synth（SoundFont を使わず合成音）、--no-stems、--wav-only
 """

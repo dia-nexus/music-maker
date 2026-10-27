@@ -295,6 +295,51 @@ def analyze(master, stems, score, sr, outdir, info=None, mix_stats=None):
     rep['mechanical'] = mech
     flags += verdict
 
+    # ── 弾き方の目安（2026-10-27「エレクトーンをボンボン叩いている」「曲が少し立ってる」から）──
+    # 楽譜の側：旋律がつながっているか、鍵盤がペダルを踏んでいるか、打鍵が強すぎないか、ベースが同じ音を連打していないか
+    # 音の側：耳に刺さる高域（2.5kHz 以上）の割合
+    play = {'tracks': {}}
+    pflags = []
+    for tid, tr in score.tracks.items():
+        if tr.fn in ('cue', 'drums', 'perc', 'timp') or tr.drum or not tr.notes:
+            continue
+        ns = sorted(tr.notes, key=lambda n: (n.start, n.pitch))
+        row = dict(fn=tr.fn, vel_max=max(n.vel for n in ns), vel_mean=round(float(np.mean([n.vel for n in ns])), 1))
+        if tr.fn in ('melody', 'counter', 'double') and (tr.part or {}).get('articulation') != 'staccato':
+            starts = sorted({round(n.start, 3) for n in ns})
+            ends = {}
+            for n in ns:
+                ends[round(n.start, 3)] = max(ends.get(round(n.start, 3), 0), n.end)
+            pairs = [(a, b) for a, b in zip(starts, starts[1:]) if b - a <= 1.0 + 1e-6]
+            gaps = [b - ends[a] for a, b in pairs]
+            row['gap_pct'] = round(100 * sum(g > 0.05 for g in gaps) / max(1, len(gaps)))
+            if len(gaps) >= 8 and row['gap_pct'] > 20:
+                pflags.append(f'{tid}：1拍以内に続く音の {row["gap_pct"]}% で、音と音のあいだが空いている（つながらず、ぶつぶつ聞こえる）')
+        if tr.family in ('keys', 'epiano'):
+            row['pedal'] = sum(1 for c in tr.cc if c[1] == 64 and c[2] >= 64)
+            if row['pedal'] == 0 and len(ns) >= 8:
+                pflags.append(f'{tid}：ピアノなのにペダルを踏んでいない（音が切れて硬く聞こえる）')
+        cap = 100 if tr.fn == 'melody' else 95
+        if tr.family in ('keys', 'epiano', 'pluck', 'mallet') and row['vel_max'] > cap:
+            pflags.append(f'{tid}：打鍵の強さが最大 {row["vel_max"]}（{cap} を超えると音源の硬い音が鳴る）')
+        if tr.fn == 'bass':
+            run = best = 1
+            for a, b in zip(ns, ns[1:]):
+                run = run + 1 if (b.pitch == a.pitch and b.start - a.start <= 0.55) else 1
+                best = max(best, run)
+            row['same_note_run'] = best
+            if best >= 6:
+                pflags.append(f'{tid}：同じ音を8分で {best} 回続けて弾いている（「ボンボンボン」と聞こえる）')
+        play['tracks'][tid] = row
+    P = S ** 2   # 振幅の2乗（エネルギー）で数える
+    hi_share = round(float(P[f >= 2500].sum() / (P.sum() + 1e-12) * 100), 1)
+    play['high_2500_pct'] = hi_share
+    if hi_share > 6:
+        pflags.append(f'2.5kHz 以上の割合が {hi_share}%（耳に刺さって「立って」聞こえやすい。目安 5% 以下）')
+    play['verdict'] = pflags
+    rep['play'] = play
+    flags += pflags
+
     # ── きっかけ ──
     onset = np.concatenate([[0], np.maximum(0, np.diff(np.log(S[(f > 40) & (f < 12000)].sum(0) + 1e-9)))])
     cue_rows = []
@@ -512,6 +557,18 @@ def markdown(rep, score):
     L.append(f'- 左右の相関 {mm["stereo_correlation"]}（1 に近いほどモノラル）、最後の音のあとの響き {mm["reverb_tail_db"]} dB、スペクトルの時間変化 {mm["spectral_flux"]}')
     L.append(f'- 判定：' + ('、'.join(mm['verdict']) if mm['verdict'] else '目安の範囲では機械的な所は見つからない'))
     L.append('')
+    pl = rep.get('play') or {}
+    if pl:
+        L.append('## 弾き方の目安')
+        L.append('')
+        L.append('| 楽器 | 役 | 強さ 平均／最大 | 音のあいだが空く割合 | ペダル | ベースの同音連打 |')
+        L.append('|---|---|---|---|---|---|')
+        for tid, r in pl['tracks'].items():
+            L.append(f'| {tid} | {r["fn"]} | {r["vel_mean"]}／{r["vel_max"]} | {str(r["gap_pct"]) + "%" if "gap_pct" in r else "-"} | '
+                     f'{r["pedal"] if "pedal" in r else "-"} | {r.get("same_note_run", "-")} |')
+        L.append('')
+        L.append(f'2.5kHz 以上の割合 {pl["high_2500_pct"]}%（目安 5% 以下）。判定：' + ('、'.join(pl['verdict']) if pl['verdict'] else '目安の範囲'))
+        L.append('')
     L.append('## きっかけ')
     L.append('')
     L.append('| 秒 | 種類 | 効き | メモ |')

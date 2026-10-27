@@ -120,12 +120,16 @@ def colorize(chord, key, style_name):
     return chord
 
 
+# 2回目以降も1回目と同じ和声と旋律を使う役（曲の形を A B A B のように聞かせる）
+ROLE_REPEAT = ('verse', 'build', 'chorus')
+
+
 def build_harmony(score, rng):
     sp = score.spec
     meter, sections, style_name = sp['meter'], sp['sections'], sp['style_name']
     style = sp['style']
     used = []
-    main_prog = None
+    main_prog = {}
     for si, sec in enumerate(sections):
         nbars = max(1, math.ceil(sec.length / meter.bar_beats - 1e-6))
         if sec.progression:
@@ -136,13 +140,15 @@ def build_harmony(score, rng):
             score.log.append(f'{sec.name}：和声は設計図の指定 {" ".join(toks)}')
             base = toks
         else:
-            # サビは曲の「顔」なので、2回目以降のサビは同じ進行を使う（旋律と編成で変化をつける）
-            if sec.role == 'chorus' and main_prog:
-                base = main_prog
+            # サビは曲の「顔」なので、2回目以降のサビは同じ進行を使う（旋律と編成で変化をつける）。
+            # 平歌（verse）と盛り上げ（build）も、2回目は1回目と同じ進行にする。前は区切りごとに選び直していて、
+            # 宣伝ムービーの曲の2回目の盛り上げ（I vi IV V）と平歌（I bVII IV）が、ほかの区切りと噛み合わず「急に和・民謡みたいになる」と言われた（2026-10-27 の指摘）
+            if sec.role in ROLE_REPEAT and sec.role in main_prog and sec.repeat is not False:
+                base = main_prog[sec.role]
             else:
                 base = choose_progression(style_name, sec.key, sec.mood_tag, used, rng)
-                if sec.role == 'chorus':
-                    main_prog = base
+                if sec.role in ROLE_REPEAT:
+                    main_prog[sec.role] = base
             score.log.append(f'{sec.name}（{sec.role}・{sec.mood_tag}）：和声 {" ".join(base)}  調 {sec.key.name()}')
         bars = []
         for b in range(nbars):
@@ -270,6 +276,7 @@ def compose_melody(score, rng, parts_by_sec):
     score.motif = A
     prev_deg = 2
     line = []
+    sung = {}   # 役 → (小節の数, [(区切りの頭からの拍, 長さ, 度数, 句の中の位置, 最後の小節か)])
     for sec in sp['sections']:
         mparts = [p for p in parts_by_sec[sec.index] if p['fn'] == 'melody']
         if not mparts or sec.melody is False or sec.role == 'break':
@@ -282,6 +289,18 @@ def compose_melody(score, rng, parts_by_sec):
         shift = {'intro': 0, 'verse': -1, 'build': 0, 'chorus': 2, 'bridge': 1, 'outro': 0}.get(sec.role, 0)
         nbars = max(1, math.ceil(sec.length / bb - 1e-6))
         motif = B if sec.role == 'bridge' else A
+        # 同じ役の2回目：1回目の旋律をそのまま写す（小節の数が同じとき）。主音からの距離で写すので、転調していればその調で同じ旋律になる
+        prior = sung.get(sec.role) if sec.role in ROLE_REPEAT and sec.repeat is not False else None
+        if prior and prior[0] == nbars:
+            out = [(sec.start + o, min(d, sec.end - sec.start - o), base + off, sec, pos, lastbar)
+                   for (o, d, off, pos, lastbar) in prior[1] if sec.start + o < sec.end - 1e-6]
+            if out and max(x[2] for x in out) > info['hi'] - 2:
+                out = [(x[0], x[1], x[2] - 12) + x[3:] for x in out]
+            elif out and min(x[2] for x in out) < info['lo'] + 3:
+                out = [(x[0], x[1], x[2] + 12) + x[3:] for x in out]
+            score.log.append(f'{sec.name}（{sec.role}）：旋律は前の {sec.role} を繰り返す')
+            line += out
+            continue
         # 区切りの頭の高さ（度数）。山場は高く、紹介は低めから。前の区切りの最後の音とは近い方の8度を選ぶ
         want = {'intro': 2, 'verse': 0, 'build': 0, 'chorus': 2, 'bridge': 2, 'outro': 2}.get(sec.role, 2)
         prev_deg = want
@@ -318,11 +337,12 @@ def compose_melody(score, rng, parts_by_sec):
                 rh = [(0, .5), (.5, .5), (1, bb - 1)] if rng.random() < .6 else [(0, 1), (1, bb - 1)]
                 ct = [0, 1, 2][:len(rh)] if rng.random() < .5 else [0, -1, -2][:len(rh)]
                 m = Motif(rh, ct)
-            if sec.role == 'build':
-                m = Motif(m.rhythm, [c + (pos + 1) // 2 for c in m.contour])
+            if sec.role == 'build' and last_bar:
+                # 盛り上げのせり上がりは、次の区切りへ渡す最後の小節だけ。前は小節ごとに1度ずつ上げていて、区切りの途中で旋律が持ち上がり、山場より高くなった（2026-10-27）
+                m = Motif(m.rhythm, [c + 1 for c in m.contour])
             chord = score.chord_at(bar_start)
             # 小節の最初の音：前の音から近い和音の音（度数で）
-            target = prev_deg + (1 if sec.role == 'build' and pos == 0 else 0)
+            target = prev_deg + (1 if sec.role == 'build' and last_bar else 0)
             start_deg = _snap_to_chord(target, chord, sec.key, base, shift)
             for (o, d), c in zip(m.rhythm, m.contour):
                 t = bar_start + o
@@ -362,6 +382,13 @@ def compose_melody(score, rng, parts_by_sec):
                     out[k] = (t0, d0, up if up <= info['hi'] - 2 else p0 - 1, s0, po, lb)
                 this_bar = [(round(x[0] - bar_start, 3), x[2]) for x in out[k0:]]
             prev_bar = this_bar
+        # 山場は曲でいちばん高く聞こえるように：前の区切りの最高音より低ければ、音域に収まるかぎり1オクターブ上げる
+        if sec.role == 'chorus' and out and line and max(x[2] for x in out) < max(x[2] for x in line) and max(x[2] for x in out) + 12 <= info['hi'] - 2:
+            out = [(x[0], x[1], x[2] + 12) + x[3:] for x in out]
+            base += 12
+        if sec.role in ROLE_REPEAT and sec.role not in sung and out:
+            # 主音（base）からの半音の距離で覚える（音域に収めたオクターブの移動や模続も含めて写せる）
+            sung[sec.role] = (nbars, [(x[0] - sec.start, x[1], x[2] - base, x[4], x[5]) for x in out])
         line += out
     fixed = line
     score.melody_line = fixed
@@ -450,10 +477,6 @@ def pattern_comp(score, tr, part, sec, rng, bars):
                 # ピアノの左手：ベースがいない区切りでは根音を足す
                 if tr.family in ('keys',) and o == 0 and not part.get('_bass_active'):
                     tr.add(t, min(2, s1 - t), bass_pitch(span.chord, 36, 50), vv - 6)
-            if tr.family == 'keys':
-                tr.cc.append((s0 + 0.04, 64, 0))
-                tr.cc.append((s0 + 0.06, 64, 127))
-                tr.cc.append((s1 - 0.03, 64, 0))
 
 
 def _r(*xs):
@@ -571,10 +594,12 @@ def pattern_bass(score, tr, part, sec, rng, bars):
             prev = root
             nxt = score.next_chord(span)
             nroot = bass_pitch(nxt.chord, lo, hi, root) if nxt else root
-            fifth = root + 7 if root + 7 <= hi + 2 else root - 5
+            # 5度は、上（根音+7）と下（根音-5）のうち次の根音に近いほう。上ばかり選ぶと B→F#（上へ7度）→G（下へ10度）のように跳ねた（2026-10-27）
+            fifth = min([f for f in (root + 7, root - 5) if lo - 2 <= f <= hi + 2] or [root + 7], key=lambda f: abs(f - nroot))
             approach = nroot - 1 if nroot > root else nroot + 1
             if pat == 'pop_eighths':
-                if sec.energy < 0.55:
+                # 8分の連打は山場（0.75 以上）だけ。盛り上げや平歌で根音を8分で叩き続けると「ボンボンボン」と鳴る（2026-10-27 の指摘）
+                if sec.energy_at(s0) < 0.75:
                     seq = [(0, 1.5, root), (1.5, .5, root), (2, 1.5, fifth), (3.5, .5, approach)]
                 else:
                     seq = [(o * .5, .45, root if o not in (3, 7) else (root + 12 if o == 3 else approach)) for o in range(8)]
@@ -689,7 +714,9 @@ def drum_bar(pat, e, i, L, rng, fill=False, first=False):
             if i % 2:
                 out += [(2.5, D['kick'], -12)]
         else:
-            kicks = [[0, 1.5, 2.5], [0, 2, 2.75], [0, .75, 2.5], [0, 2.5, 3.25]][i % 4]
+            # 大太鼓は2小節で一回りする型。前は4通りを小節ごとに回していて、3小節の区切り（6秒の場面）では毎回2小節めに 2.75 拍の跳ねと強いスネアが来て、
+            # 区切りの途中で「上がる」ように聞こえた（2026-10-27 の指摘「21秒の音が上がる感じが、曲全体の周期性やリズムの観点からよくわからん」）。跳ねは区切りの終わりのフィル（fill）に任せる
+            kicks = [[0, 2.5], [0, 1.5, 2.5]][i % 2]
             out += [(k, D['kick'], 0) for k in kicks] + [(1, D['snare'], 4), (3, D['snare'], 4)]
             step = .25 if e > 0.85 else .5
             n = int(4 / step)
@@ -990,6 +1017,150 @@ def _vary_bar(score, b0, b1, attempt, rng):
         return
 
 
+# ── 弾き方（演奏の表情）──────────────────────────────
+# 2026-10-27 の指摘「音に柔らかさや連続感がない。エレクトーンをボンボン叩いてるんだろうなってかんじ。弾き方が下手」。
+# 譜面（何をいつ鳴らすか）は変えずに、人が弾くときにやっていることを足す：
+#   1. 旋律・ベースは次の音までつなぐ（レガート）。弦・管・声は少し重ねて、音の切れ目を作らない
+#   2. ピアノ（鍵盤）は和音の替わり目でペダルを踏み替える（替わった直後に上げて、すぐ踏む）。前は替わり目の手前で上げていて、毎回音が途切れた
+#   3. 打鍵の強さに、拍の重み（小節の頭が強く、裏が弱い）と、句の山（句の中ほどが強く、句の終わりは抜く）を付け、隣どうしの強さをならす
+#   4. 伴奏は旋律より弱く、強さの幅も狭める（伴奏が叩きつけない）。和音は少しずらして鳴らす（ピアノの指が同時には落ちない）
+#   5. ギターの刻みは次の刻みまで鳴らしっぱなし、弦の刻み（spiccato）も長めに
+SUSTAIN_FAM = ('bowed', 'brass', 'reed', 'flute', 'choir')
+LINE_FN = ('melody', 'double', 'counter', 'bass')
+ACCOMP_FN = ('comp', 'arp', 'ostinato', 'pad')
+
+
+def _metric_weight(start, bb):
+    pos = start % bb
+    if abs(pos) < 0.02 or abs(pos - bb) < 0.02:
+        return 5
+    if bb == 4 and abs(pos - 2) < 0.02:
+        return 2
+    if abs(pos - round(pos)) < 0.02:
+        return 0
+    if abs(pos * 2 - round(pos * 2)) < 0.04:
+        return -4
+    return -6
+
+
+def _phrases(notes, gap=0.75, longest=8.0):
+    """休み（gap 拍以上）か、長さ longest 拍で句に分ける。"""
+    out, cur = [], []
+    for n in notes:
+        if cur and (n.start - cur[-1].end >= gap or n.start - cur[0].start >= longest):
+            out.append(cur)
+            cur = []
+        cur.append(n)
+    if cur:
+        out.append(cur)
+    return out
+
+
+def perform(score, rng):
+    bb = score.spec['meter'].bar_beats
+    for tr in score.tracks.values():
+        if tr.drum or tr.fn in ('cue', 'timp', 'drums', 'perc'):
+            continue
+        notes = sorted([n for n in tr.notes if n.tag != 'cue'], key=lambda n: (n.start, n.pitch))
+        if not notes:
+            continue
+        # 3a. 拍の重み
+        k = 0.5 if tr.fn == 'pad' else 1.0
+        for n in notes:
+            n.vel += int(round(_metric_weight(n.start, bb) * k))
+        # 1. つなぐ（同じ時刻に重なる和音は1つの塊として、次の塊までつなぐ）
+        # スタッカートと書いた旋律（playful のクラリネットなど）は切ったまま。つなぐと弾き方の指定が消える
+        if tr.fn in LINE_FN and (tr.part or {}).get('articulation') != 'staccato':
+            starts = sorted({round(n.start, 3) for n in notes})
+            nxt = {a: b for a, b in zip(starts, starts[1:])}
+            for n in notes:
+                b = nxt.get(round(n.start, 3))
+                if b is None:
+                    continue
+                ioi, gap = b - n.start, b - n.end
+                if gap > max(0.5, ioi * 0.5):
+                    continue   # 書かれた休み（句の切れ目）はそのまま
+                if tr.fn == 'bass':
+                    n.dur = max(n.dur, ioi - min(0.06, ioi * 0.1))
+                elif tr.family in SUSTAIN_FAM:
+                    n.dur = ioi + 0.08
+                else:
+                    n.dur = ioi + 0.03
+            # 3b. 句の山：句の中ほどを強く、句の終わりの音は抜く。いちばん高い音は少し強く
+            if tr.fn != 'bass':
+                mono = [n for n in notes if n is max((m for m in notes if abs(m.start - n.start) < 1e-3), key=lambda m: m.pitch)]
+                for ph in _phrases(mono):
+                    L = len(ph)
+                    top = max(m.pitch for m in ph)
+                    for i, n in enumerate(ph):
+                        x = (i + 0.5) / L
+                        n.vel += int(round(8 * math.sin(math.pi * x ** 0.85) - 3))
+                        if n.pitch == top and L > 2:
+                            n.vel += 3
+                    if L > 2:
+                        ph[-1].vel -= 6
+        # 4. 伴奏は旋律より弱く、幅も狭める。旋律をなぞる重ね（鉄琴など）とベースも旋律より前に出さない
+        if tr.fn == 'double':
+            tr.vel_cap = 78
+            for n in notes:
+                n.vel = int(min(78, 30 + (n.vel - 30) * 0.7))
+        if tr.fn == 'melody' and tr.family in ('keys', 'epiano', 'pluck', 'mallet'):
+            # 打って鳴らす楽器の旋律は 100 まで（それより強いと音源の硬い音が鳴る）
+            tr.vel_cap = 100
+            for n in notes:
+                n.vel = int(min(100, n.vel if n.vel <= 90 else 90 + (n.vel - 90) * 0.5))
+        if tr.fn == 'bass':
+            tr.vel_cap = 92
+            for n in notes:
+                n.vel = int(min(92, 36 + (n.vel - 36) * 0.8))
+        if tr.fn in ACCOMP_FN:
+            cap = 88 if tr.family in ('keys', 'epiano', 'pluck') else 96
+            tr.vel_cap = cap   # 揺らし（humanize）のあとにも効かせる
+            for n in notes:
+                n.vel = int(min(cap, 34 + (n.vel - 34) * 0.78))
+        # 4c. 打つ楽器（鍵盤・撥弦・鉄琴）の旋律も強く叩きすぎない。強い打鍵は音源の硬い層が鳴り、角が立つ
+        if tr.fn in ('melody', 'double') and tr.family in ('keys', 'epiano', 'pluck', 'mallet'):
+            for n in notes:
+                n.vel = int(min(100, 36 + (n.vel - 36) * 0.85))
+        # 5. 刻みの長さ
+        if tr.fn == 'comp' and tr.family == 'pluck':
+            starts = sorted({round(n.start, 2) for n in notes})
+            nxt = {a: b for a, b in zip(starts, starts[1:])}
+            for n in notes:
+                b = nxt.get(round(n.start, 2))
+                span_end = score.chord_at(n.start).end
+                n.dur = max(n.dur, min((b if b is not None else n.end) + 0.02, span_end + 0.05) - n.start)
+        if tr.fn == 'ostinato':
+            for n in notes:
+                n.dur = n.dur / 0.6 * 0.85   # 刻みの間の 6 割 → 8.5 割
+        # 4b. 和音を少しずらす（鍵盤・撥弦の伴奏。低い音から 8〜18ms ずつ）
+        if tr.fn in ('comp',) and tr.family in ('keys', 'epiano'):
+            tempo = score.spec['tempo']
+            groups = {}
+            for n in notes:
+                groups.setdefault(round(n.start, 3), []).append(n)
+            for t, g in groups.items():
+                if len(g) < 3:
+                    continue
+                spb = 60.0 / tempo.bpm_at(t)
+                for j, n in enumerate(sorted(g, key=lambda m: m.pitch)):
+                    n.start += j * rng.uniform(0.008, 0.018) / spb
+        # 3c. 隣どうしの強さをならす（同じ時刻の和音は1つとして数える）
+        prev = None
+        for n in notes:
+            n.vel = int(max(1, min(127, n.vel if prev is None else round(0.7 * n.vel + 0.3 * prev))))
+            prev = n.vel
+        # 2. 鍵盤のペダル：和音の替わり目の直後に上げて、すぐ踏み直す（レガート・ペダル）
+        if tr.family in ('keys', 'epiano'):
+            tr.cc = [c for c in tr.cc if c[1] != 64]
+            a0, a1 = notes[0].start, max(n.end for n in notes)
+            for span in chord_spans_in(score, a0, a1):
+                t = max(span.start, a0)
+                tr.cc.append((t + 0.02, 64, 0))
+                tr.cc.append((t + 0.12, 64, 127))
+            tr.cc.append((a1 + 0.5, 64, 0))
+
+
 def humanize(score, rng):
     sp = score.spec
     h = sp['humanize']
@@ -1014,7 +1185,7 @@ def humanize(score, rng):
             if sp['style_name'] == 'lofi' and tr.drum and n.pitch in (D['snare'], D['side']):
                 ms += 22   # ローファイの後ろに置くスネア
             n.start = max(0.0, n.start + ms / 1000.0 / sec_per_beat)
-            n.vel = int(max(1, min(127, n.vel + rng.gauss(0, h['velocity'] * 0.5))))
+            n.vel = int(max(1, min(getattr(tr, 'vel_cap', 127), n.vel + rng.gauss(0, h['velocity'] * 0.5))))
 
 
 # ── 全体 ──────────────────────────────────────────
@@ -1064,8 +1235,17 @@ def parts_for(sec, style):
 
 
 def sec_fixed(sec, part):
-    """区切りに instruments の指定があれば、勢いで楽器を出し入れしない。"""
-    return bool(sec.instruments)
+    """区切りに楽器の名前をそのまま並べた指定（[piano, harp]）があれば、勢いで楽器を出し入れしない。
+    足し引きだけ（[-drums]・[+choir]）のときは、盛り上げ（build）で楽器が小節ごとに入る流れを残し、+ で足した楽器だけ頭から鳴らす。
+    前は足し引きでも出し入れを止めていて、宣伝ムービーの曲の「つかみ」（[-drums]）で、ベース・ギター・弦・鉄琴が6秒で一度に入った（2026-10-27 の指摘「7秒ぐらいからの音も気になる」）"""
+    ins = sec.instruments
+    if not ins:
+        return False
+    if isinstance(ins, str):
+        ins = ins.replace(',', ' ').split()
+    if any(not x.startswith(('+', '-')) for x in ins):
+        return True
+    return any(x.startswith('+') and x[1:] in (part['id'], part['inst']) for x in ins)
 
 
 def _runs(bars):
@@ -1163,6 +1343,7 @@ def compose(spec):
     apply_ending(score)
     apply_dynamics(score)
     dedupe_bars(score, rng)
+    perform(score, rng)
     humanize(score, rng)
     for tr in score.tracks.values():
         tr.notes.sort(key=lambda n: (n.start, n.pitch))

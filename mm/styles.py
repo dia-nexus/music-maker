@@ -72,7 +72,7 @@ PROGRESSIONS = [
     dict(p='I V/7 vi I/5 IV I/3 ii V', tags=['tender', 'epic'], mode='major'),
     dict(p='ii V I vi', tags=['playful', 'calm'], mode='major'),
     dict(p='IV iv I vi', tags=['tender'], mode='major'),
-    dict(p='I bVII IV I', tags=['epic', 'bright'], mode='major'),
+    dict(p='I bVII IV I', tags=['epic'], mode='major'),   # 明るい曲調からは外した：五音の旋律と重なると和・民謡に寄って聞こえた（2026-10-27 の指摘）
     dict(p='vi V IV V', tags=['tense', 'epic'], mode='major'),
     dict(p='IVmaj7 V7/vi vi7 I7', tags=['tender', 'calm'], mode='major', styles=['lofi', 'acoustic']),
     dict(p='ii7 V7 Imaj7 vi7', tags=['calm', 'tender', 'playful'], mode='major', styles=['lofi']),
@@ -113,12 +113,12 @@ STYLES = {
     'bright_pop': dict(
         label='明るいポップ', tempo=120, key='D major', mood='bright', feel='straight',
         description='ピアノとアコギが刻み、ベースとドラムが前へ押す。サビで弦と鉄琴、合唱が足される。',
-        reverb=dict(size=0.55, wet=0.16), master=dict(air=1.5, glue=2.0),
+        reverb=dict(size=0.65, wet=0.23), master=dict(air=0.6, glue=2.0),   # 音のつながりのため、部屋を少し広く・高域を少し抑える（2026-10-27）
         humanize=dict(timing_ms=9, velocity=8),
         parts=[
             dict(id='lead', inst='piano', fn='melody', e=(0.0, 0.72), level=-1),
             dict(id='lead_hi', inst='clean_guitar', fn='melody', e=(0.72, 1.01), level=-3),
-            dict(id='glock', inst='glock', fn='double', oct=1, e=(0.62, 1.01), level=-10),
+            dict(id='glock', inst='glock', fn='double', oct=1, e=(0.72, 1.01), level=-15),   # 山場だけ、控えめに（盛り上げから鳴らすと旋律の上で耳につく。2026-10-27）
             dict(id='keys', inst='piano', fn='comp', pattern='pop_syncop', e=(0.2, 1.01), level=-8),
             dict(id='guitar', inst='steel_guitar', fn='comp', pattern='strum', e=(0.42, 1.01), level=-7),
             dict(id='strings', inst='strings', fn='pad', e=(0.55, 1.01), level=-8),

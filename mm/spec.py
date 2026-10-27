@@ -243,10 +243,18 @@ def normalize(raw):
             instruments=rs.get('instruments'), melody=rs.get('melody', True),
             feel=rs.get('feel', style.get('feel', 'straight')), rit=bool(rs.get('rit', False)),
             density=rs.get('density'), ramp=float(rs.get('ramp', styles.ROLE_RAMP.get(role, 0.0))),
+            repeat=rs.get('repeat'),   # false なら、同じ役の前の区切りの和声と旋律を繰り返さず作り直す
         )
         sections.append(sec)
         beat += length
     total = beat
+    # 盛り上げ（build）の頭は、すぐ前の区切りの勢いから大きく跳ばない：前より 0.12 だけ上から始め、終わり（頂点）はそのまま。
+    # 静かな入り（0.25）の直後の盛り上げが 0.53 から始まり、ベースとギターが頭で一度に入って全体が 12dB 跳ねた（2026-10-27 の指摘「7秒ぐらいからの音も気になる」）
+    for a, b in zip(sections, sections[1:]):
+        if b.role == 'build' and b.ramp > 0 and 'ramp' not in (raw_secs[b.index] or {}):
+            top = b.energy + b.ramp / 2
+            head = min(b.energy - b.ramp / 2, a.energy_at(a.end - 1e-6) + 0.12)
+            b.energy, b.ramp = (top + head) / 2, top - head
     # 調：書いていない区切りは前の調を引き継ぐ
     cur = key
     for s in sections:
